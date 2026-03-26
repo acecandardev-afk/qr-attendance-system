@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "composer install --no-dev --optimize-autoloader && npm run build",
   "builds": [
     {
       "src": "api/index.php",
