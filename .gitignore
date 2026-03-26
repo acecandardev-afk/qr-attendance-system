@@ -23,8 +23,12 @@
 /storage/*.key
 /storage/pail
 /vendor
+/bootstrap/cache/*.php
+!/bootstrap/cache/.gitignore
 Homestead.json
 Homestead.yaml
 Thumbs.db
 *.sqlite
 *.sqlite-journal
+
+.vercel
