@@ -66,7 +66,11 @@ php -S 127.0.0.1:8000 -t public
 
 ## 7) Vercel deployment (full Laravel routing)
 
-This project is configured to run on Vercel using `public/index.php` as the app entrypoint.
+This project is configured to run on Vercel using `api/index.php` serverless entrypoint that forwards to Laravel's `public/index.php`.
+
+### Vercel config note
+
+- Use `vercel-php@0.9.0` runtime (not `@vercel/php`, which is not available on npm).
 
 ### Required environment variables on Vercel
 
