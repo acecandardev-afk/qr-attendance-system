@@ -25,6 +25,8 @@
 /vendor
 /bootstrap/cache/*.php
 !/bootstrap/cache/.gitignore
+!/bootstrap/cache/packages.php
+!/bootstrap/cache/services.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
