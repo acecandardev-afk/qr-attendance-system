@@ -18,7 +18,12 @@ class CheckRole
         $user = Auth::user();
 
         if (! in_array($user->role, $roles)) {
-            abort(403, 'You do not have permission to view this page.');
+            if ($request->expectsJson()) {
+                abort(403, 'You do not have permission to view this page.');
+            }
+
+            return redirect()->route('dashboard')
+                ->with('error', 'You were redirected to your dashboard because this page is restricted.');
         }
 
         return $next($request);

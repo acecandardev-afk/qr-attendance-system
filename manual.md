@@ -71,6 +71,11 @@ This project is configured to run on Vercel using `api/index.php` serverless ent
 ### Vercel config note
 
 - Use `vercel-php@0.9.0` runtime (not `@vercel/php`, which is not available on npm).
+- The app now has safer cloud defaults when `VERCEL` is present:
+  - `SESSION_DRIVER=cookie` fallback
+  - `CACHE_STORE=array` fallback
+  - `QUEUE_CONNECTION=sync` fallback
+  You can still override these explicitly in Vercel Environment Variables.
 
 ### Required environment variables on Vercel
 
