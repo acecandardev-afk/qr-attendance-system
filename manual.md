@@ -64,3 +64,32 @@ php -S 127.0.0.1:8000 -t public
 - This happens when using `php artisan serve`.
 - Fix: use `php -S 127.0.0.1:8000 -t public` instead.
 
+## 7) Vercel deployment (full Laravel routing)
+
+This project is configured to run on Vercel using `public/index.php` as the app entrypoint.
+
+### Required environment variables on Vercel
+
+Set these in **Project Settings -> Environment Variables**:
+
+- `APP_NAME=QR Attendance System`
+- `APP_ENV=production`
+- `APP_DEBUG=false`
+- `APP_KEY=<your base64 key from local .env>`
+- `APP_URL=https://<your-vercel-domain>`
+- `DB_CONNECTION=mysql`
+- `DB_HOST=<your-db-host>`
+- `DB_PORT=3306`
+- `DB_DATABASE=<your-db-name>`
+- `DB_USERNAME=<your-db-user>`
+- `DB_PASSWORD=<your-db-password>`
+- `SESSION_DRIVER=cookie`
+- `CACHE_STORE=array`
+- `QUEUE_CONNECTION=sync`
+
+### Important notes
+
+- Vercel file storage is ephemeral. Do not rely on local disk for permanent uploads.
+- Use a hosted MySQL database (PlanetScale, Railway, RDS, etc.) for production data.
+- After setting env vars, redeploy from Vercel dashboard.
+
