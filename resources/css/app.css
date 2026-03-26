@@ -1,0 +1,366 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+:root {
+    --app-bg-start: #f8fafc;
+    --app-bg-end: #eef2ff;
+    --app-border: #e5e7eb;
+    --app-text: #0f172a;
+    --app-muted: #475569;
+}
+
+/* Dark mode */
+html.dark {
+    color-scheme: dark;
+    --app-bg-start: #0b1220;
+    --app-bg-end: #0b1220;
+    --app-border: rgba(148, 163, 184, 0.18);
+    --app-text: #e2e8f0;
+    --app-muted: #94a3b8;
+}
+
+html.dark body {
+    background:
+        radial-gradient(circle at 15% 0%, rgba(15, 59, 140, 0.26), transparent 34%),
+        radial-gradient(circle at 85% 100%, rgba(251, 191, 36, 0.18), transparent 38%),
+        linear-gradient(180deg, #0b1220 0%, #0b1220 100%);
+}
+
+html.dark nav.app-nav {
+    background: rgba(2, 6, 23, 0.72);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+html.dark nav.app-nav .nav-link {
+    color: #e2e8f0;
+}
+
+html.dark nav.app-nav .nav-link:hover {
+    background: rgba(59, 130, 246, 0.14);
+    color: #fff;
+}
+
+/* Make common Tailwind utility colors readable in dark mode */
+html.dark .bg-white { background-color: rgba(15, 23, 42, 0.92) !important; }
+html.dark .bg-gray-50 { background-color: rgba(15, 23, 42, 0.55) !important; }
+html.dark .bg-gray-100 { background-color: rgba(2, 6, 23, 0.85) !important; }
+html.dark .border-gray-200 { border-color: rgba(148, 163, 184, 0.18) !important; }
+html.dark .border-gray-300 { border-color: rgba(148, 163, 184, 0.24) !important; }
+
+html.dark .text-gray-900,
+html.dark .text-gray-800,
+html.dark .text-slate-900,
+html.dark .text-slate-800 { color: #e2e8f0 !important; }
+
+html.dark .text-gray-700,
+html.dark .text-gray-600,
+html.dark .text-slate-700,
+html.dark .text-slate-600 { color: #cbd5e1 !important; }
+
+html.dark .text-gray-500,
+html.dark .text-slate-500 { color: #94a3b8 !important; }
+
+html.dark table th { color: #94a3b8; }
+html.dark table td { color: #e2e8f0; }
+
+/* Enrollment schedule checkboxes: avoid bg-gray-50 in dark (looks “grayed out” / disabled) */
+.schedule-picker {
+    background: linear-gradient(180deg, #f0f6ff 0%, #eef2ff 100%);
+    border: 1px solid rgba(15, 59, 140, 0.2);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.schedule-picker input[type='checkbox'] {
+    cursor: pointer;
+    accent-color: #2563eb;
+}
+
+html.dark .schedule-picker {
+    background: rgba(30, 41, 59, 0.98) !important;
+    border-color: rgba(148, 163, 184, 0.4) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+html.dark .schedule-picker .schedule-picker-hint {
+    color: #cbd5e1 !important;
+}
+
+html.dark .schedule-picker label {
+    color: #e2e8f0 !important;
+}
+
+html.dark .schedule-picker input[type='checkbox'] {
+    width: 1.05rem;
+    height: 1.05rem;
+    accent-color: #3b82f6;
+    cursor: pointer;
+}
+
+/*
+ * Enrollment “Class schedules” block — hard contrast (not muted / “grayed out”).
+ * Overrides global html.dark .text-slate-* rules on this screen.
+ */
+.enrollment-schedule-copy {
+    opacity: 1 !important;
+    padding: 1rem 1.125rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(37, 99, 235, 0.28);
+    background: linear-gradient(165deg, #ffffff 0%, #eff6ff 55%, #e0e7ff 100%);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 4px 18px rgba(15, 59, 140, 0.08);
+}
+
+html.dark .enrollment-schedule-copy {
+    border-color: rgba(96, 165, 250, 0.5) !important;
+    background: linear-gradient(165deg, #1e293b 0%, #0f172a 100%) !important;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.enrollment-schedule-copy .enrollment-schedule-title {
+    display: block;
+    color: #020617 !important;
+    font-weight: 800 !important;
+    font-size: 0.9375rem;
+    letter-spacing: -0.015em;
+    margin-bottom: 0.5rem;
+}
+
+.enrollment-schedule-copy .enrollment-schedule-desc {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.875rem;
+    line-height: 1.55;
+    font-weight: 600 !important;
+    color: #0f172a !important;
+}
+
+html.dark .enrollment-schedule-copy .enrollment-schedule-title {
+    color: #ffffff !important;
+}
+
+html.dark .enrollment-schedule-copy .enrollment-schedule-desc {
+    color: #f1f5f9 !important;
+}
+
+html,
+body {
+    font-family: var(--font-sans);
+    color: var(--app-text);
+}
+
+body {
+    background:
+        radial-gradient(circle at 15% 0%, rgba(59, 130, 246, 0.12), transparent 28%),
+        radial-gradient(circle at 85% 100%, rgba(99, 102, 241, 0.12), transparent 30%),
+        linear-gradient(180deg, var(--app-bg-start) 0%, var(--app-bg-end) 100%);
+    min-height: 100vh;
+}
+
+main {
+    animation: fade-in-up 240ms ease-out;
+}
+
+@keyframes fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.bg-white.rounded-lg.shadow,
+.bg-white.rounded-lg.shadow-lg,
+.bg-white.rounded-lg.shadow-sm {
+    border: 1px solid var(--app-border);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+button,
+a,
+input,
+select,
+textarea {
+    transition: all 180ms ease;
+}
+
+input,
+select,
+textarea {
+    border-radius: 0.625rem;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+
+table th {
+    letter-spacing: 0.02em;
+    color: #64748b;
+    font-weight: 600;
+}
+
+table td {
+    color: #1f2937;
+}
+
+nav.app-nav {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+    backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.92);
+}
+
+nav.app-nav .brand-title {
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+}
+
+nav.app-nav .nav-link {
+    border-radius: 0.6rem;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+nav.app-nav .nav-link:hover {
+    background: #eef2ff;
+    color: #1d4ed8;
+}
+
+.app-fluid .max-w-7xl,
+.app-fluid .max-w-4xl {
+    max-width: 100% !important;
+}
+
+.app-fluid .mx-auto {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* ---------- Global UI Modernization Layer ---------- */
+:root {
+    --ui-primary: #0f3b8c;
+    --ui-primary-strong: #0b2c69;
+    --ui-accent: #fbbf24;
+    --ui-surface: rgba(255, 255, 255, 0.95);
+    --ui-surface-2: rgba(255, 255, 255, 0.82);
+}
+
+/* Consistent responsive spacing for all page wrappers */
+main > div[class*="max-w-"] {
+    padding-left: clamp(0.75rem, 1.8vw, 1.5rem) !important;
+    padding-right: clamp(0.75rem, 1.8vw, 1.5rem) !important;
+}
+
+/* Card-like sections used across admin/faculty/student */
+.bg-white.rounded-lg.shadow,
+.bg-white.rounded-lg.shadow-sm,
+.bg-white.rounded-lg.shadow-lg,
+.bg-white.rounded-xl.shadow {
+    border-radius: 1rem !important;
+    background: var(--ui-surface) !important;
+    border: 1px solid var(--app-border) !important;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Inputs/selects/buttons: bigger targets for mobile + polished focus */
+input,
+select,
+textarea,
+button,
+.inline-flex,
+.block.px-3.py-2 {
+    min-height: 2.5rem;
+}
+
+select,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea {
+    background: var(--ui-surface-2);
+    border: 1px solid var(--app-border);
+}
+
+.bg-blue-500 {
+    background-color: var(--ui-primary) !important;
+}
+
+.bg-blue-500:hover,
+.hover\:bg-blue-600:hover {
+    background-color: var(--ui-primary-strong) !important;
+}
+
+/* Better readability for dense table pages */
+table th {
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+table td {
+    font-size: 0.875rem;
+}
+
+/* Device responsiveness */
+@media (max-width: 1024px) {
+    .mb-8.flex.justify-between.items-center {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+}
+
+@media (max-width: 768px) {
+    nav.app-nav .brand-title {
+        font-size: 1.2rem !important;
+    }
+
+    .grid.grid-cols-1.md\:grid-cols-4,
+    .grid.grid-cols-1.md\:grid-cols-3 {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Keep table pages usable on small screens */
+    table.min-w-full {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+    }
+}
+
+html.dark .bg-white.rounded-lg.shadow,
+html.dark .bg-white.rounded-lg.shadow-sm,
+html.dark .bg-white.rounded-lg.shadow-lg,
+html.dark .bg-white.rounded-xl.shadow {
+    background: rgba(15, 23, 42, 0.9) !important;
+}
+
+@media (max-width: 640px) {
+    main.py-8 {
+        padding-top: 1rem;
+        padding-bottom: 1.25rem;
+    }
+
+    h1.text-3xl {
+        font-size: 1.65rem;
+        line-height: 2rem;
+    }
+}

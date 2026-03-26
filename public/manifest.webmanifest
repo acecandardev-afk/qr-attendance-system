@@ -1,0 +1,13 @@
+{
+  "name": "Smart Attendance System",
+  "short_name": "Attendance",
+  "start_url": "/",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#2563eb",
+  "background_color": "#ffffff",
+  "description": "QR-based smart attendance tracking for admins, faculty, and students.",
+  "orientation": "portrait-primary",
+  "display_override": ["standalone", "browser"],
+  "icons": []
+}
