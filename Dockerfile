@@ -1,10 +1,9 @@
 FROM php:8.2-apache
 
-# Remove ALL MPM symlinks directly, then enable only mpm_prefork (required by mod_php).
-# Using a2dismod is unreliable on Bookworm — direct deletion is guaranteed.
-RUN find /etc/apache2/mods-enabled/ -name 'mpm_*' -delete \
-    && a2enmod mpm_prefork \
-    && a2enmod rewrite
+# Disable all MPM modules first, then enable only mpm_prefork (required by mod_php)
+RUN a2dismod mpm_event mpm_worker mpm_async 2>/dev/null || true && \
+    a2enmod mpm_prefork && \
+    a2enmod rewrite
 
 # Install system libraries + PHP extensions (GD required for QR code generation)
 RUN apt-get update && apt-get install -y \
