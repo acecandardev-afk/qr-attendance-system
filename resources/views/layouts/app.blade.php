@@ -89,6 +89,52 @@
             width: calc(100% - var(--sidebar-width));
         }
 
+        /* ── Mobile responsive ── */
+        @media (max-width: 767px) {
+            .app-sidebar {
+                transform: translateX(-100%);
+                transition: transform 220ms ease;
+                z-index: 50;
+            }
+            .app-sidebar.open {
+                transform: translateX(0);
+            }
+            .app-content {
+                margin-left: 0;
+                width: 100%;
+            }
+            .mobile-overlay {
+                display: block;
+            }
+        }
+
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15,23,42,0.45);
+            z-index: 40;
+        }
+
+        .mobile-topbar {
+            display: none;
+        }
+
+        @media (max-width: 767px) {
+            .mobile-topbar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0.75rem 1rem;
+                background: rgba(255,255,255,0.95);
+                border-bottom: 1px solid rgba(148,163,184,0.22);
+                position: sticky;
+                top: 0;
+                z-index: 30;
+                box-shadow: 0 2px 8px rgba(15,23,42,0.08);
+            }
+        }
+
         .sidebar-panel {
             height: 100%;
             border-radius: 1.15rem;
@@ -246,17 +292,39 @@
 </head>
 <body class="bg-gray-100 antialiased @auth app-fluid @endauth">
     @auth
-    <div class="app-shell flex">
-        <aside class="app-sidebar fixed inset-y-0 left-0 flex flex-col">
+    <div class="app-shell flex" x-data="{ sidebarOpen: false }">
+
+        <!-- Mobile top bar -->
+        <div class="mobile-topbar">
+            <button @click="sidebarOpen = true" class="p-1 rounded-lg text-slate-600 hover:bg-slate-100 focus:outline-none" aria-label="Open menu">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+            <span class="font-bold text-slate-800 text-sm truncate mx-2">{{ config('app.name') }}</span>
+            <span class="text-xs text-slate-500 uppercase tracking-wider">{{ ucfirst(Auth::user()->role) }}</span>
+        </div>
+
+        <!-- Mobile overlay -->
+        <div class="mobile-overlay" x-show="sidebarOpen" @click="sidebarOpen = false" x-transition.opacity></div>
+
+        <aside class="app-sidebar fixed inset-y-0 left-0 flex flex-col" :class="{ 'open': sidebarOpen }">
             <div class="sidebar-panel">
                 <div class="sidebar-top">
-                    <a href="{{ route('dashboard') }}" class="brand-title text-xl font-extrabold text-slate-800 block truncate">
-                        {{ config('app.name') }}
-                    </a>
+                    <div class="flex items-center justify-between">
+                        <a href="{{ route('dashboard') }}" class="brand-title text-xl font-extrabold text-slate-800 block truncate">
+                            {{ config('app.name') }}
+                        </a>
+                        <button @click="sidebarOpen = false" class="md:hidden p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100" aria-label="Close menu">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
                     <p class="text-xs uppercase tracking-wider text-slate-500 mt-1">{{ ucfirst(Auth::user()->role) }} Panel</p>
                 </div>
 
-                <nav class="sidebar-menu space-y-1">
+                <nav class="sidebar-menu space-y-1" @click="sidebarOpen = false">
                 @if(Auth::user()->isAdmin())
                     <a href="{{ route('admin.dashboard') }}" class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">Dashboard</a>
                     <a href="{{ route('admin.users.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">Users</a>
