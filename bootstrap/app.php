@@ -9,6 +9,7 @@ use App\Models\Section;
 use App\Models\User;
 use App\Support\AttendanceConfig;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Database\LostConnectionDetector;
 use Illuminate\Database\QueryException;
 use Illuminate\Encryption\MissingAppKeyException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -60,12 +61,33 @@ return Application::configure(basePath: dirname(__DIR__))
                 '<div style="max-width:820px;margin:0 auto;border:1px solid rgba(148,163,184,.25);background:rgba(15,23,42,.9);border-radius:16px;padding:18px 18px 14px;">'.
                 '<div style="font-size:14px;opacity:.9;margin-bottom:8px;">QR Attendance System</div>'.
                 '<h1 style="font-size:22px;margin:0 0 10px;">'.htmlspecialchars($title, ENT_QUOTES, 'UTF-8').'</h1>'.
-                '<p style="margin:0 0 12px;opacity:.9;">This deployment is missing required configuration. Fix the items below in your hosting environment (Vercel → Project Settings → Environment Variables), then redeploy.</p>'.
+                '<p style="margin:0 0 12px;opacity:.9;">This deployment is missing required configuration. In your host&apos;s dashboard (e.g. Railway, Render, or Fly.io), open <strong>Variables</strong> / <strong>Environment</strong>, set the values below, then redeploy.</p>'.
                 '<ul style="margin:0 0 10px;padding-left:18px;">'.$items.'</ul>'.
                 '<p style="margin:0;opacity:.75;font-size:13px;">Once configured, refresh this page.</p>'.
                 '</div></body></html>',
                 $status
             );
+        };
+
+        /** True only for unreachable DB, wrong credentials/host, missing driver, unknown DB, or missing tables (migrations). */
+        $isDatabaseInfrastructureFailure = static function (\Throwable $e): bool {
+            $detector = new LostConnectionDetector;
+            if ($detector->causedByLostConnection($e)) {
+                return true;
+            }
+
+            $msg = $e->getMessage();
+            if (str_contains($msg, 'could not find driver')) {
+                return true;
+            }
+            if (str_contains($msg, 'Unknown database') || preg_match('/SQLSTATE\[HY000\]\s*\[1049\]/', $msg)) {
+                return true;
+            }
+            if (str_contains($msg, 'Base table or view not found') || str_contains($msg, 'no such table:')) {
+                return true;
+            }
+
+            return false;
         };
 
         $adminModelNotFoundRedirects = [
@@ -146,14 +168,18 @@ return Application::configure(basePath: dirname(__DIR__))
             ]);
         });
 
-        $exceptions->renderable(function (QueryException|\PDOException $e, Request $request) use ($renderSetupRequired) {
+        $exceptions->renderable(function (QueryException|\PDOException $e, Request $request) use ($renderSetupRequired, $isDatabaseInfrastructureFailure) {
             if ($request->expectsJson()) {
+                return null;
+            }
+
+            if (! $isDatabaseInfrastructureFailure($e)) {
                 return null;
             }
 
             return $renderSetupRequired('Database connection failed', [
                 'Set DB_CONNECTION, DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD',
-                'Run migrations against your production database (php artisan migrate)',
+                'Run migrations against your production database (php artisan migrate --force)',
                 'Redeploy after updating environment variables',
             ]);
         });
