@@ -6,21 +6,21 @@ return [
     | QR Code Settings
     |--------------------------------------------------------------------------
     */
-    'qr_expiration_minutes' => env('QR_EXPIRATION_MINUTES', 10),
+    'qr_expiration_minutes' => (int) env('QR_EXPIRATION_MINUTES', 10),
     
     /*
     |--------------------------------------------------------------------------
     | Attendance Rules
     |--------------------------------------------------------------------------
     */
-    'late_threshold_minutes' => env('ATTENDANCE_LATE_THRESHOLD_MINUTES', 15),
+    'late_threshold_minutes' => (int) env('ATTENDANCE_LATE_THRESHOLD_MINUTES', 15),
     
     /*
     |--------------------------------------------------------------------------
     | Security Settings
     |--------------------------------------------------------------------------
     */
-    'rate_limit_scans_per_minute' => env('RATE_LIMIT_SCANS_PER_MINUTE', 30),
+    'rate_limit_scans_per_minute' => (int) env('RATE_LIMIT_SCANS_PER_MINUTE', 30),
     
     'require_network_match' => env('REQUIRE_NETWORK_MATCH', true),
     

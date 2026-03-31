@@ -32,7 +32,7 @@ class AttendanceSessionService
 
         // Calculate expiration (config/DB value; Carbon requires int|float)
         $startedAt = Carbon::now();
-        $expiresAt = $startedAt->copy()->addMinutes(AttendanceConfig::get('qr_expiration_minutes', 10));
+        $expiresAt = $startedAt->copy()->addMinutes((int) AttendanceConfig::get('qr_expiration_minutes', 10));
 
         // Create session record
         $session = AttendanceSession::create([

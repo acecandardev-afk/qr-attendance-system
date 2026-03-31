@@ -35,7 +35,7 @@ class AttendanceMarkingService
 
             // Step 1.1: Reject stale signed payloads (helps protect replay from delayed/offline queue sync)
             $payloadTimestamp = isset($qrData['timestamp']) ? Carbon::createFromTimestamp((int) $qrData['timestamp']) : null;
-            $maxPayloadAge = AttendanceConfig::get('qr_expiration_minutes', 10) + 2; // small grace window
+            $maxPayloadAge = (int) AttendanceConfig::get('qr_expiration_minutes', 10) + 5; // grace window
             if (!$payloadTimestamp || $payloadTimestamp->lt(Carbon::now()->subMinutes($maxPayloadAge))) {
                 throw new \Exception('This attendance code is too old. Ask your instructor to show the current QR code.');
             }
@@ -169,7 +169,7 @@ class AttendanceMarkingService
      */
     protected function checkRateLimit(int $studentId, string $ipAddress, string $userAgent): void
     {
-        $rateLimit = AttendanceConfig::get('rate_limit_scans_per_minute', 30);
+        $rateLimit = (int) AttendanceConfig::get('rate_limit_scans_per_minute', 30);
         $timeWindow = 1; // minute
 
         $recentAttempts = AttendanceAttempt::where('student_id', $studentId)
@@ -189,7 +189,7 @@ class AttendanceMarkingService
     protected function determineAttendanceStatus(AttendanceSession $session): string
     {
         $schedule = $session->schedule;
-        $lateThreshold = AttendanceConfig::get('late_threshold_minutes', 15);
+        $lateThreshold = (int) AttendanceConfig::get('late_threshold_minutes', 15);
 
         // Get schedule start time for today
         $scheduleStart = Carbon::parse($schedule->start_time);

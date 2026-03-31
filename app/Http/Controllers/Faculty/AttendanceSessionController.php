@@ -77,7 +77,7 @@ class AttendanceSessionController extends Controller
 
         // Verify schedule is for today (optional - with tolerance)
         if (!$schedule->isToday()) {
-            return back()->with('error', 'This class is not scheduled for today. Pick today’s schedule or start an ad-hoc session.');
+            return back()->with('error', 'This class is not scheduled for today. Pick today’s schedule or start an emergency class.');
         }
 
         try {
@@ -96,7 +96,7 @@ class AttendanceSessionController extends Controller
     }
 
     /**
-     * Start an ad-hoc attendance session (without requiring today's predefined schedule slot).
+     * Start an Emergency class attendance (without requiring today's predefined schedule slot).
      */
     public function storeAdHoc(Request $request)
     {
@@ -132,14 +132,14 @@ class AttendanceSessionController extends Controller
             $session = $this->sessionService->startSession($adHocSchedule, $faculty->id);
 
             return redirect()->route('faculty.sessions.show', $session->id)
-                ->with('success', 'Ad-hoc attendance session started. Students can scan the QR code now.');
+                ->with('success', 'Emergency class attendance started. Students can scan the QR code now.');
         } catch (\Throwable $e) {
             report($e);
             if ($e->getMessage() === 'FACULTY_SESSION_ALREADY_ACTIVE') {
                 return back()->with('error', 'A session is already open for this class. Close it first, or open the existing session from your list.');
             }
 
-            return back()->with('error', 'We could not start the ad-hoc session. Please try again.');
+            return back()->with('error', 'We could not start the emergency class. Please try again.');
         }
     }
 

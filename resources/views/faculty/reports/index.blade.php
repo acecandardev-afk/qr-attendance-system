@@ -5,7 +5,7 @@
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-800">My Attendance Sessions Report</h1>
+        <h1 class="text-3xl font-bold text-gray-800">My Attendance Report</h1>
         <p class="text-gray-600 mt-2">Overview of your attendance sessions and statistics.</p>
     </div>
 
@@ -46,7 +46,7 @@
     <!-- Summary Cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow p-4">
-            <p class="text-xs uppercase text-gray-500">Total Sessions</p>
+            <p class="text-xs uppercase text-gray-500">Total Classes</p>
             <p class="text-2xl font-bold text-gray-800 mt-1">{{ $data['total_sessions'] }}</p>
         </div>
         <div class="bg-white rounded-lg shadow p-4">
@@ -77,16 +77,16 @@
         </a>
     </div>
 
-    <!-- Sessions by Course -->
+    <!-- Classes by Course -->
     <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 class="text-xl font-bold text-gray-800 mb-4">Sessions by Course</h2>
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Classes by Course</h2>
         @if($data['by_course']->count() > 0)
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200 text-sm">
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Course</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Sessions</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Classes</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Attendance</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg per Session</th>
                         </tr>
@@ -110,9 +110,9 @@
         @endif
     </div>
 
-    <!-- Recent Sessions -->
+    <!-- Recent Classes -->
     <div class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-xl font-bold text-gray-800 mb-4">Recent Sessions</h2>
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Recent Classes</h2>
         @if($data['recent_sessions']->count() > 0)
             <div class="space-y-2">
                 @foreach($data['recent_sessions'] as $session)
@@ -142,7 +142,7 @@
                 @endforeach
             </div>
         @else
-            <p class="text-gray-500 text-center py-4">No recent sessions.</p>
+            <p class="text-gray-500 text-center py-4">No Recent Classes.</p>
         @endif
     </div>
 </div>

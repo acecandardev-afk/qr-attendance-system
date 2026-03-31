@@ -48,7 +48,7 @@
         <!-- Summary Cards -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div class="bg-white rounded-lg shadow p-4">
-                <p class="text-xs uppercase text-gray-500">Total Sessions</p>
+                <p class="text-xs uppercase text-gray-500">Total Classes</p>
                 <p class="text-2xl font-bold text-gray-800 mt-1">{{ $data['total_sessions'] }}</p>
             </div>
             <div class="bg-white rounded-lg shadow p-4">

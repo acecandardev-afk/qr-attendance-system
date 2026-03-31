@@ -368,7 +368,7 @@
                     <a href="{{ route('admin.attendance-attempts.index') }}" class="sidebar-link {{ request()->routeIs('admin.attendance-attempts.*') ? 'active' : '' }}">Security</a>
                 @elseif(Auth::user()->isFaculty())
                     <a href="{{ route('dashboard') }}" class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">Dashboard</a>
-                    <a href="{{ route('faculty.sessions.index') }}" class="sidebar-link {{ request()->routeIs('faculty.sessions.*') ? 'active' : '' }}">Sessions</a>
+                    <a href="{{ route('faculty.sessions.index') }}" class="sidebar-link {{ request()->routeIs('faculty.sessions.*') ? 'active' : '' }}">Schedules</a>
                     <a href="{{ route('faculty.enrollments.index') }}" class="sidebar-link {{ request()->routeIs('faculty.enrollments.*') ? 'active' : '' }}">Enrollments</a>
                     <a href="{{ route('faculty.reports.index') }}" class="sidebar-link {{ request()->routeIs('faculty.reports.*') ? 'active' : '' }}">Reports</a>
                 @elseif(Auth::user()->isStudent())

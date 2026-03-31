@@ -1,19 +1,19 @@
 @extends('layouts.app')
 
-@section('title', 'Attendance Sessions')
+@section('title', 'Attendance Schedules')
 
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-800">Attendance Sessions</h1>
-        <p class="text-gray-600 mt-2">Start and manage attendance sessions for your classes</p>
+        <h1 class="text-3xl font-bold text-gray-800">Attendance Schedules</h1>
+        <p class="text-gray-600 mt-2">Start and manage attendance for your classes</p>
     </div>
 
-    <!-- Quick Ad-hoc Session -->
+    <!-- Emergency Class -->
     <div class="bg-white rounded-lg shadow p-6 mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-            <h2 class="text-xl font-bold text-gray-800">Start Ad-hoc Session</h2>
-            <p class="text-sm text-gray-500">For make-up classes or emergency attendance.</p>
+            <h2 class="text-xl font-bold text-gray-800">Start Emergency Class</h2>
+            <p class="text-sm text-gray-500">For make-up classes or unscheduled attendance.</p>
         </div>
 
         <form method="POST" action="{{ route('faculty.sessions.store.ad-hoc') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -39,7 +39,7 @@
             </div>
             <div class="flex items-end">
                 <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-semibold">
-                    Start Ad-hoc Session
+                    Start Emergency Class
                 </button>
             </div>
         </form>
