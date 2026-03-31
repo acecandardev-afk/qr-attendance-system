@@ -1,10 +1,9 @@
 FROM php:8.2-apache
 
-# Disable default prefork MPM and enable the more efficient event MPM,
-# then enable rewrite for Laravel routes. Without disabling prefork first,
-# Apache throws "AH00534: More than one MPM loaded" and refuses to start.
-RUN a2dismod mpm_prefork \
-    && a2enmod mpm_event \
+# Debian Bookworm defaults to mpm_event, but mod_php requires mpm_prefork.
+# Disable event/worker MPMs first to avoid "More than one MPM loaded" error.
+RUN a2dismod mpm_event mpm_worker 2>/dev/null || true \
+    && a2enmod mpm_prefork \
     && a2enmod rewrite
 
 # Install system libraries + PHP extensions (GD required for QR code generation)
