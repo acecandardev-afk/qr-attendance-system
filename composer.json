@@ -70,7 +70,11 @@
     },
     "extra": {
         "laravel": {
-            "dont-discover": []
+            "dont-discover": [
+                "laravel/pail",
+                "laravel/sail",
+                "nunomaduro/collision"
+            ]
         }
     },
     "config": {

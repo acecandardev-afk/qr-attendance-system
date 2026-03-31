@@ -21,6 +21,7 @@
             /* School theme */
             --school-primary: #0f3b8c; /* navy */
             --school-accent: #fbbf24;  /* gold */
+            --sidebar-width: 18rem;
 
             --app-bg-start: #f8fafc;
             --app-bg-end: #eef2ff;
@@ -42,29 +43,151 @@
             min-height: 100vh;
         }
 
-        /* Header */
-        nav.app-nav {
-            border-bottom: 1px solid var(--app-border);
-            backdrop-filter: blur(10px);
-            background: rgba(255, 255, 255, 0.9);
-        }
-
+        /* Sidebar + mobile shell */
         .brand-title {
             letter-spacing: -0.01em;
             line-height: 1.1;
         }
 
-        nav.app-nav .nav-link {
-            border-radius: 0.75rem;
-            padding: 0.5rem 0.75rem;
-            font-weight: 700;
-            font-size: 0.85rem;
-            color: #0f172a;
+        .app-shell {
+            min-height: 100vh;
         }
 
-        nav.app-nav .nav-link:hover {
-            background: rgba(15, 59, 140, 0.08);
+        .app-sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: transparent;
+            padding: 1rem 0.75rem;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-radius: 0.72rem;
+            padding: 0.62rem 0.72rem;
+            font-weight: 700;
+            font-size: 0.87rem;
+            color: #1e293b;
+            white-space: nowrap;
+        }
+
+        .sidebar-link:hover {
+            background: rgba(15, 59, 140, 0.1);
             color: var(--school-primary);
+        }
+
+        .sidebar-link.active {
+            background: linear-gradient(135deg, #3b6ff7, #4f46e5);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(37, 99, 235, 0.28);
+        }
+
+        .app-content {
+            min-height: 100vh;
+            margin-left: var(--sidebar-width);
+            width: calc(100% - var(--sidebar-width));
+        }
+
+        .sidebar-panel {
+            height: 100%;
+            border-radius: 1.15rem;
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            background: rgba(255, 255, 255, 0.92);
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-top {
+            padding: 1rem 0.9rem 0.8rem;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        }
+
+        .sidebar-search {
+            margin-top: 0.7rem;
+            width: 100%;
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            border-radius: 0.72rem;
+            background: rgba(248, 250, 252, 0.9);
+            padding: 0.58rem 0.72rem;
+            font-size: 0.85rem;
+        }
+
+        .sidebar-search:focus {
+            border-color: rgba(59, 130, 246, 0.45);
+            background: #ffffff;
+        }
+
+        .sidebar-menu {
+            padding: 0.75rem 0.55rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .sidebar-bottom {
+            border-top: 1px solid rgba(148, 163, 184, 0.16);
+            padding: 0.75rem;
+            background: rgba(248, 250, 252, 0.75);
+        }
+
+        .sidebar-logout {
+            width: 100%;
+            background: #ef4444;
+            color: #fff;
+            border-radius: 0.7rem;
+            padding: 0.58rem 0.72rem;
+            font-size: 0.84rem;
+            font-weight: 700;
+        }
+
+        .sidebar-logout:hover {
+            background: #dc2626;
+        }
+
+        .sidebar-theme-btn {
+            width: 100%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            border-radius: 0.7rem;
+            padding: 0.5rem 0.62rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #334155;
+            background: #fff;
+        }
+
+        .sidebar-theme-btn .toggle-pill {
+            width: 1.9rem;
+            height: 1.08rem;
+            border-radius: 9999px;
+            background: #cbd5e1;
+            position: relative;
+            transition: all 180ms ease;
+        }
+
+        .sidebar-theme-btn .toggle-pill::after {
+            content: "";
+            width: 0.82rem;
+            height: 0.82rem;
+            background: #fff;
+            border-radius: 50%;
+            position: absolute;
+            top: 0.13rem;
+            left: 0.14rem;
+            transition: all 180ms ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+        }
+
+        .dark .sidebar-theme-btn .toggle-pill {
+            background: #2563eb;
+        }
+
+        .dark .sidebar-theme-btn .toggle-pill::after {
+            left: 0.94rem;
         }
 
         /* Cards and surfaces */
@@ -123,139 +246,63 @@
 </head>
 <body class="bg-gray-100 antialiased @auth app-fluid @endauth">
     @auth
-    <!-- Navigation Bar -->
-    <nav class="app-nav shadow-sm" x-data="{ open: false }">
-        <div class="w-full px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between py-3 border-b border-slate-200/70">
-                <div class="flex items-center">
-                    <a href="{{ route('dashboard') }}" class="brand-title text-2xl font-extrabold text-slate-800 whitespace-nowrap">
+    <div class="app-shell flex">
+        <aside class="app-sidebar fixed inset-y-0 left-0 flex flex-col">
+            <div class="sidebar-panel">
+                <div class="sidebar-top">
+                    <a href="{{ route('dashboard') }}" class="brand-title text-xl font-extrabold text-slate-800 block truncate">
                         {{ config('app.name') }}
                     </a>
+                    <p class="text-xs uppercase tracking-wider text-slate-500 mt-1">{{ ucfirst(Auth::user()->role) }} Panel</p>
                 </div>
 
-                <div class="hidden sm:flex sm:items-center sm:space-x-3">
+                <nav class="sidebar-menu space-y-1">
+                @if(Auth::user()->isAdmin())
+                    <a href="{{ route('admin.dashboard') }}" class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">Dashboard</a>
+                    <a href="{{ route('admin.users.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">Users</a>
+                    <a href="{{ route('admin.departments.index') }}" class="sidebar-link {{ request()->routeIs('admin.departments.*') ? 'active' : '' }}">Departments</a>
+                    <a href="{{ route('admin.courses.index') }}" class="sidebar-link {{ request()->routeIs('admin.courses.*') ? 'active' : '' }}">Courses</a>
+                    <a href="{{ route('admin.sections.index') }}" class="sidebar-link {{ request()->routeIs('admin.sections.*') ? 'active' : '' }}">Sections</a>
+                    <a href="{{ route('admin.schedules.index') }}" class="sidebar-link {{ request()->routeIs('admin.schedules.*') ? 'active' : '' }}">Schedules</a>
+                    <a href="{{ route('admin.enrollments.index') }}" class="sidebar-link {{ request()->routeIs('admin.enrollments.*') ? 'active' : '' }}">Enrollments</a>
+                    <a href="{{ route('admin.reports.index') }}" class="sidebar-link {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}">Reports</a>
+                    <a href="{{ route('admin.settings.attendance.edit') }}" class="sidebar-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">Settings</a>
+                    <a href="{{ route('admin.attendance-attempts.index') }}" class="sidebar-link {{ request()->routeIs('admin.attendance-attempts.*') ? 'active' : '' }}">Security</a>
+                @elseif(Auth::user()->isFaculty())
+                    <a href="{{ route('dashboard') }}" class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">Dashboard</a>
+                    <a href="{{ route('faculty.sessions.index') }}" class="sidebar-link {{ request()->routeIs('faculty.sessions.*') ? 'active' : '' }}">Sessions</a>
+                    <a href="{{ route('faculty.enrollments.index') }}" class="sidebar-link {{ request()->routeIs('faculty.enrollments.*') ? 'active' : '' }}">Enrollments</a>
+                    <a href="{{ route('faculty.reports.index') }}" class="sidebar-link {{ request()->routeIs('faculty.reports.*') ? 'active' : '' }}">Reports</a>
+                @elseif(Auth::user()->isStudent())
+                    <a href="{{ route('dashboard') }}" class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">Dashboard</a>
+                    <a href="{{ route('student.attendance.index') }}" class="sidebar-link {{ request()->routeIs('student.attendance.index') ? 'active' : '' }}">Scan QR</a>
+                    <a href="{{ route('student.attendance.history') }}" class="sidebar-link {{ request()->routeIs('student.attendance.history') ? 'active' : '' }}">History</a>
+                @endif
+                </nav>
+
+                <div class="sidebar-bottom mt-auto">
+                    <p class="text-sm font-semibold text-slate-700 truncate mb-2">{{ Auth::user()->full_name }}</p>
                     <button
                         type="button"
-                        class="inline-flex items-center justify-center h-10 w-10 rounded-xl border border-slate-200/70 bg-white/70 hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="sidebar-theme-btn focus:outline-none focus:ring-2 focus:ring-blue-500"
                         onclick="window.toggleTheme && window.toggleTheme()"
                         aria-label="Toggle dark mode"
                         title="Toggle dark mode"
                     >
-                        <svg class="h-5 w-5 text-slate-700 dark:hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364-1.414 1.414M7.05 16.95l-1.414 1.414M16.95 16.95l1.414 1.414M7.05 7.05 5.636 5.636M12 8a4 4 0 100 8 4 4 0 000-8z" />
-                        </svg>
-                        <svg class="h-5 w-5 text-slate-200 hidden dark:block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
-                        </svg>
+                        <span>Dark Mode</span>
+                        <span class="toggle-pill" aria-hidden="true"></span>
                     </button>
-                    <span class="text-sm text-slate-600">
-                        {{ Auth::user()->full_name }}
-                        <span class="text-xs text-slate-500">({{ ucfirst(Auth::user()->role) }})</span>
-                    </span>
-                    <form method="POST" action="{{ route('logout') }}">
+                    <form method="POST" action="{{ route('logout') }}" class="mt-2">
                         @csrf
-                        <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm font-semibold">
+                        <button type="submit" class="sidebar-logout">
                             Logout
                         </button>
                     </form>
                 </div>
-
-                <!-- Mobile menu button -->
-                <button
-                    type="button"
-                    class="sm:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-                    aria-controls="mobile-menu"
-                    aria-expanded="false"
-                    @click="open = !open"
-                >
-                    <span class="sr-only">Open main menu</span>
-                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                </button>
             </div>
+        </aside>
 
-            <!-- Desktop nav links row -->
-            <div class="hidden sm:block py-2">
-                <div class="flex items-center gap-2 overflow-x-auto whitespace-nowrap">
-                    @if(Auth::user()->isAdmin())
-                        <a href="{{ route('admin.dashboard') }}" class="nav-link inline-flex items-center">Dashboard</a>
-                        <a href="{{ route('admin.users.index') }}" class="nav-link inline-flex items-center">Users</a>
-                        <a href="{{ route('admin.departments.index') }}" class="nav-link inline-flex items-center">Departments</a>
-                        <a href="{{ route('admin.courses.index') }}" class="nav-link inline-flex items-center">Courses</a>
-                        <a href="{{ route('admin.sections.index') }}" class="nav-link inline-flex items-center">Sections</a>
-                        <a href="{{ route('admin.schedules.index') }}" class="nav-link inline-flex items-center">Schedules</a>
-                        <a href="{{ route('admin.enrollments.index') }}" class="nav-link inline-flex items-center">Enrollments</a>
-                        <a href="{{ route('admin.reports.index') }}" class="nav-link inline-flex items-center">Reports</a>
-                        <a href="{{ route('admin.settings.attendance.edit') }}" class="nav-link inline-flex items-center">Settings</a>
-                        <a href="{{ route('admin.attendance-attempts.index') }}" class="nav-link inline-flex items-center">Security</a>
-                    @elseif(Auth::user()->isFaculty())
-                        <a href="{{ route('dashboard') }}" class="nav-link inline-flex items-center">Dashboard</a>
-                        <a href="{{ route('faculty.sessions.index') }}" class="nav-link inline-flex items-center">Sessions</a>
-                        <a href="{{ route('faculty.enrollments.index') }}" class="nav-link inline-flex items-center">Enrollments</a>
-                        <a href="{{ route('faculty.reports.index') }}" class="nav-link inline-flex items-center">Reports</a>
-                    @elseif(Auth::user()->isStudent())
-                        <a href="{{ route('dashboard') }}" class="nav-link inline-flex items-center">Dashboard</a>
-                        <a href="{{ route('student.attendance.index') }}" class="nav-link inline-flex items-center">Scan QR</a>
-                        <a href="{{ route('student.attendance.history') }}" class="nav-link inline-flex items-center">History</a>
-                    @endif
-                </div>
-            </div>
-
-            <!-- Mobile nav -->
-            <div class="sm:hidden" id="mobile-menu" x-show="open" x-cloak>
-                <div class="pt-2 pb-3 space-y-1 border-t border-gray-200">
-                    @if(Auth::user()->isAdmin())
-                        <a href="{{ route('admin.dashboard') }}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100">Dashboard</a>
-                        <a href="{{ route('admin.users.index') }}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100">Users</a>
-                        <a href="{{ route('admin.departments.index') }}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100">Departments</a>
-                        <a href="{{ route('admin.courses.index') }}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100">Courses</a>
-                        <a href="{{ route('admin.sections.index') }}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100">Sections</a>
-                        <a href="{{ route('admin.schedules.index') }}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100">Schedules</a>
-                        <a href="{{ route('admin.enrollments.index') }}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100">Enrollments</a>
-                        <a href="{{ route('admin.reports.index') }}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100">Reports</a>
-                        <a href="{{ route('admin.settings.attendance.edit') }}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100">Settings</a>
-                        <a href="{{ route('admin.attendance-attempts.index') }}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100">Security</a>
-                    @elseif(Auth::user()->isFaculty())
-                        <a href="{{ route('dashboard') }}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100">Dashboard</a>
-                        <a href="{{ route('faculty.sessions.index') }}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100">Sessions</a>
-                        <a href="{{ route('faculty.enrollments.index') }}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100">Enrollments</a>
-                        <a href="{{ route('faculty.reports.index') }}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100">Reports</a>
-                    @elseif(Auth::user()->isStudent())
-                        <a href="{{ route('dashboard') }}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100">Dashboard</a>
-                        <a href="{{ route('student.attendance.index') }}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100">Scan QR</a>
-                        <a href="{{ route('student.attendance.history') }}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100">History</a>
-                    @endif
-                    <div class="border-t border-gray-200 mt-2 pt-2 flex items-center justify-between px-3 gap-2">
-                        <span class="text-sm text-gray-600">
-                            {{ Auth::user()->full_name }}
-                            <span class="text-xs text-gray-500">({{ ucfirst(Auth::user()->role) }})</span>
-                        </span>
-                        <button
-                            type="button"
-                            class="inline-flex items-center justify-center h-9 w-9 rounded-xl border border-slate-200/70 bg-white/70 hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            onclick="window.toggleTheme && window.toggleTheme()"
-                            aria-label="Toggle dark mode"
-                            title="Toggle dark mode"
-                        >
-                            <svg class="h-5 w-5 text-slate-700 dark:hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364-1.414 1.414M7.05 16.95l-1.414 1.414M16.95 16.95l1.414 1.414M7.05 7.05 5.636 5.636M12 8a4 4 0 100 8 4 4 0 000-8z" />
-                            </svg>
-                            <svg class="h-5 w-5 text-slate-200 hidden dark:block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
-                            </svg>
-                        </button>
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs">
-                                Logout
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
+        <div class="app-content flex-1">
     @endauth
 
     <!-- Global flash messages -->
@@ -285,9 +332,13 @@
     @endif
 
     <!-- Main Content -->
-    <main class="py-6 sm:py-8">
+    <main class="py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
         @yield('content')
     </main>
+    @auth
+        </div>
+    </div>
+    @endauth
 
     <script>
         if ('serviceWorker' in navigator) {
