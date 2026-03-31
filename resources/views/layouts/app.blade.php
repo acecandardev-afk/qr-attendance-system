@@ -128,71 +128,94 @@
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                padding: 0.75rem 1rem;
-                background: rgba(255,255,255,0.95);
-                border-bottom: 1px solid rgba(148,163,184,0.22);
+                padding: 0.8rem 1rem;
+                background: linear-gradient(90deg, #0f1e3d, #1a3166);
+                border-bottom: 1px solid rgba(255,255,255,0.08);
                 position: sticky;
                 top: 0;
                 z-index: 30;
-                box-shadow: 0 2px 8px rgba(15,23,42,0.08);
+                box-shadow: 0 2px 12px rgba(15,23,42,0.25);
+                color: white;
             }
+            .mobile-topbar button { color: rgba(255,255,255,0.85); }
+            .mobile-topbar button:hover { background: rgba(255,255,255,0.1); }
+            .mobile-topbar span { color: white; }
+            .mobile-topbar span.text-xs { color: rgba(255,255,255,0.5) !important; font-size: 0.65rem; letter-spacing: 0.1em; }
         }
 
         .sidebar-panel {
             height: 100%;
             border-radius: 1.15rem;
-            border: 1px solid rgba(148, 163, 184, 0.22);
-            background: rgba(255, 255, 255, 0.92);
-            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.1);
+            background: linear-gradient(160deg, #0f1e3d 0%, #1a3166 60%, #0f3b8c 100%);
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.35);
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.07);
         }
 
         .sidebar-top {
-            padding: 1rem 0.9rem 0.8rem;
-            border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+            padding: 1.1rem 1rem 0.9rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .sidebar-search {
-            margin-top: 0.7rem;
-            width: 100%;
-            border: 1px solid rgba(148, 163, 184, 0.22);
-            border-radius: 0.72rem;
-            background: rgba(248, 250, 252, 0.9);
-            padding: 0.58rem 0.72rem;
-            font-size: 0.85rem;
+        .sidebar-top .brand-title {
+            color: #ffffff;
+            font-size: 1.05rem;
         }
 
-        .sidebar-search:focus {
-            border-color: rgba(59, 130, 246, 0.45);
-            background: #ffffff;
+        .sidebar-top p {
+            color: rgba(255,255,255,0.5) !important;
+            letter-spacing: 0.08em;
+            font-size: 0.7rem;
         }
 
         .sidebar-menu {
-            padding: 0.75rem 0.55rem;
+            padding: 0.75rem 0.65rem;
             overflow-y: auto;
             flex: 1;
         }
 
+        .sidebar-link {
+            color: rgba(255, 255, 255, 0.75) !important;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .sidebar-link:hover {
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: #ffffff !important;
+        }
+
+        .sidebar-link.active {
+            background: rgba(255, 255, 255, 0.15) !important;
+            color: #ffffff !important;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2), 0 4px 14px rgba(0,0,0,0.2) !important;
+        }
+
         .sidebar-bottom {
-            border-top: 1px solid rgba(148, 163, 184, 0.16);
-            padding: 0.75rem;
-            background: rgba(248, 250, 252, 0.75);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.85rem;
+            background: rgba(0, 0, 0, 0.15);
+        }
+
+        .sidebar-bottom p {
+            color: rgba(255,255,255,0.85) !important;
         }
 
         .sidebar-logout {
             width: 100%;
-            background: #ef4444;
+            background: rgba(239, 68, 68, 0.85);
             color: #fff;
             border-radius: 0.7rem;
-            padding: 0.58rem 0.72rem;
+            padding: 0.6rem 0.72rem;
             font-size: 0.84rem;
             font-weight: 700;
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         .sidebar-logout:hover {
-            background: #dc2626;
+            background: #ef4444;
         }
 
         .sidebar-theme-btn {
@@ -200,43 +223,47 @@
             display: inline-flex;
             align-items: center;
             justify-content: space-between;
-            border: 1px solid rgba(148, 163, 184, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 0.7rem;
-            padding: 0.5rem 0.62rem;
+            padding: 0.5rem 0.72rem;
             font-size: 0.8rem;
-            font-weight: 700;
-            color: #334155;
-            background: #fff;
+            font-weight: 600;
+            color: rgba(255,255,255,0.8);
+            background: rgba(255,255,255,0.08);
+        }
+
+        .sidebar-theme-btn:hover {
+            background: rgba(255,255,255,0.14);
         }
 
         .sidebar-theme-btn .toggle-pill {
-            width: 1.9rem;
-            height: 1.08rem;
+            width: 2rem;
+            height: 1.1rem;
             border-radius: 9999px;
-            background: #cbd5e1;
+            background: rgba(255,255,255,0.25);
             position: relative;
-            transition: all 180ms ease;
+            transition: all 200ms ease;
         }
 
         .sidebar-theme-btn .toggle-pill::after {
             content: "";
-            width: 0.82rem;
-            height: 0.82rem;
+            width: 0.84rem;
+            height: 0.84rem;
             background: #fff;
             border-radius: 50%;
             position: absolute;
             top: 0.13rem;
-            left: 0.14rem;
-            transition: all 180ms ease;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+            left: 0.13rem;
+            transition: all 200ms ease;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
         }
 
         .dark .sidebar-theme-btn .toggle-pill {
-            background: #2563eb;
+            background: #3b82f6;
         }
 
         .dark .sidebar-theme-btn .toggle-pill::after {
-            left: 0.94rem;
+            left: 0.95rem;
         }
 
         /* Cards and surfaces */
