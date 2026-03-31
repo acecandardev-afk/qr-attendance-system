@@ -1,10 +1,4 @@
-FROM php:8.2-apache
-
-# Remove ALL MPM symlinks directly, then enable only mpm_prefork (required by mod_php).
-# Using a2dismod is unreliable on Bookworm — direct deletion is guaranteed.
-RUN find /etc/apache2/mods-enabled/ -name 'mpm_*' -delete \
-    && a2enmod mpm_prefork \
-    && a2enmod rewrite
+FROM php:8.2-cli
 
 # Install system libraries + PHP extensions (GD required for QR code generation)
 RUN apt-get update && apt-get install -y \
@@ -34,24 +28,17 @@ WORKDIR /var/www/html
 # Copy project files
 COPY . .
 
-# Install PHP dependencies (no dev packages, optimized autoloader)
+# Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Set storage and cache permissions
 RUN chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
-# Point Apache document root to Laravel's public/ folder
-RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|g' \
-        /etc/apache2/sites-available/000-default.conf \
-    && printf '<Directory /var/www/html/public>\n    AllowOverride All\n    Require all granted\n</Directory>\n' \
-        >> /etc/apache2/apache2.conf
-
-# Copy and set entrypoint
+# Copy entrypoint
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-EXPOSE 80
+EXPOSE 8000
 
 ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["apache2-foreground"]
