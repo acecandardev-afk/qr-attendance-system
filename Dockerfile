@@ -1,7 +1,11 @@
 FROM php:8.2-apache
 
-# Enable Apache rewrite for Laravel routes
-RUN a2enmod rewrite
+# Disable default prefork MPM and enable the more efficient event MPM,
+# then enable rewrite for Laravel routes. Without disabling prefork first,
+# Apache throws "AH00534: More than one MPM loaded" and refuses to start.
+RUN a2dismod mpm_prefork \
+    && a2enmod mpm_event \
+    && a2enmod rewrite
 
 # Install system libraries + PHP extensions (GD required for QR code generation)
 RUN apt-get update && apt-get install -y \
