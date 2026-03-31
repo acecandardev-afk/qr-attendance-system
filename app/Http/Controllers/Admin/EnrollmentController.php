@@ -76,23 +76,25 @@ class EnrollmentController extends Controller
             'schedule_ids.*' => 'integer|exists:schedules,id',
         ]);
 
-        // Check for duplicate enrollment
-        $exists = Enrollment::where('student_id', $validated['student_id'])
-            ->where('section_id', $validated['section_id'])
-            ->where('school_year', $validated['school_year'])
-            ->where('semester', $validated['semester'])
-            ->exists();
-
-        if ($exists) {
-            return back()->withInput()->with('error', 'This student is already enrolled in that section.');
-        }
-
         $scheduleIds = $this->validatedScheduleIdsForSection(
             (int) $validated['section_id'],
             $request->input('schedule_ids', [])
         );
         if ($scheduleIds === null) {
             return back()->withInput()->with('error', 'Please choose only schedules that belong to the selected section.');
+        }
+
+        if ($this->enrollmentDuplicateExists(
+            (int) $validated['student_id'],
+            (int) $validated['section_id'],
+            $validated['school_year'],
+            $validated['semester'],
+            $scheduleIds,
+        )) {
+            return back()->withInput()->with(
+                'error',
+                'This student already has an enrollment for that section and term with the same class schedule(s). Use a different day/time or subject, or edit the existing enrollment.'
+            );
         }
 
         $enrollment = Enrollment::create($validated);
@@ -135,6 +137,20 @@ class EnrollmentController extends Controller
         );
         if ($scheduleIds === null) {
             return back()->withInput()->with('error', 'Please choose only schedules that belong to the selected section.');
+        }
+
+        if ($this->enrollmentDuplicateExists(
+            (int) $validated['student_id'],
+            (int) $validated['section_id'],
+            $validated['school_year'],
+            $validated['semester'],
+            $scheduleIds,
+            (int) $enrollment->id,
+        )) {
+            return back()->withInput()->with(
+                'error',
+                'Another enrollment already uses this section, term, and the same class schedule(s) for this student.'
+            );
         }
 
         $enrollment->update($validated);

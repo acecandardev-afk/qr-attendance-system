@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Concerns;
 
+use App\Models\Enrollment;
 use App\Models\Schedule;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -59,7 +60,7 @@ trait ManagesEnrollmentSchedules
 
     /**
      * @param  array<int, mixed>|null  $scheduleIds
-     * @return array<int, int>|null  null if invalid (not all schedules belong to section)
+     * @return array<int, int>|null null if invalid (not all schedules belong to section)
      */
     protected function validatedScheduleIdsForSection(int $sectionId, $scheduleIds): ?array
     {
@@ -106,5 +107,53 @@ trait ManagesEnrollmentSchedules
         }
 
         return $ids;
+    }
+
+    /**
+     * Normalized key for comparing schedule selections. Empty string = no schedules (counts for whole section).
+     *
+     * @param  array<int, int|string>  $scheduleIds
+     */
+    protected function enrollmentScheduleSignature(array $scheduleIds): string
+    {
+        $ids = array_values(array_unique(array_map('intval', $scheduleIds)));
+        sort($ids);
+
+        return implode(',', $ids);
+    }
+
+    /**
+     * Whether another enrollment already uses the same student, section, term, and schedule set.
+     *
+     * @param  array<int, int>  $scheduleIds  Final schedule IDs that will be stored on the enrollment
+     */
+    protected function enrollmentDuplicateExists(
+        int $studentId,
+        int $sectionId,
+        string $schoolYear,
+        string $semester,
+        array $scheduleIds,
+        ?int $exceptEnrollmentId = null,
+    ): bool {
+        $signature = $this->enrollmentScheduleSignature($scheduleIds);
+
+        $query = Enrollment::query()
+            ->where('student_id', $studentId)
+            ->where('section_id', $sectionId)
+            ->where('school_year', $schoolYear)
+            ->where('semester', $semester);
+
+        if ($exceptEnrollmentId !== null) {
+            $query->where('id', '!=', $exceptEnrollmentId);
+        }
+
+        foreach ($query->with('schedules:id')->get() as $enrollment) {
+            $existing = $this->enrollmentScheduleSignature($enrollment->schedules->pluck('id')->all());
+            if ($existing === $signature) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

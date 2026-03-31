@@ -101,16 +101,6 @@ class EnrollmentController extends Controller
             return back()->withInput()->with('error', 'You can only enroll students in sections where you teach.');
         }
 
-        $exists = Enrollment::where('student_id', $validated['student_id'])
-            ->where('section_id', $validated['section_id'])
-            ->where('school_year', $validated['school_year'])
-            ->where('semester', $validated['semester'])
-            ->exists();
-
-        if ($exists) {
-            return back()->withInput()->with('error', 'This student already has an enrollment for that section and term. Edit it to adjust class schedules.');
-        }
-
         $myScheduleIds = $this->validatedScheduleIdsForFacultySection(
             $faculty,
             (int) $validated['section_id'],
@@ -118,6 +108,19 @@ class EnrollmentController extends Controller
         );
         if ($myScheduleIds === null) {
             return back()->withInput()->with('error', 'Choose only your own class schedules for this section.');
+        }
+
+        if ($this->enrollmentDuplicateExists(
+            (int) $validated['student_id'],
+            (int) $validated['section_id'],
+            $validated['school_year'],
+            $validated['semester'],
+            $myScheduleIds,
+        )) {
+            return back()->withInput()->with(
+                'error',
+                'This student already has an enrollment for that section and term with the same class schedule(s). Add another enrollment with a different day/time or subject, or edit the existing one.'
+            );
         }
 
         $enrollment = Enrollment::create($validated);
@@ -182,8 +185,6 @@ class EnrollmentController extends Controller
             return back()->withInput()->with('error', 'Choose only your own class schedules for this section.');
         }
 
-        $enrollment->update($validated);
-
         $otherIds = $enrollment->schedules()
             ->where('faculty_id', '!=', $faculty->id)
             ->pluck('id');
@@ -193,6 +194,22 @@ class EnrollmentController extends Controller
             ->unique()
             ->values()
             ->all();
+
+        if ($this->enrollmentDuplicateExists(
+            (int) $validated['student_id'],
+            (int) $validated['section_id'],
+            $validated['school_year'],
+            $validated['semester'],
+            $merged,
+            (int) $enrollment->id,
+        )) {
+            return back()->withInput()->with(
+                'error',
+                'This would duplicate another enrollment for the same section, term, and class schedule(s). Choose different schedules or edit the other enrollment.'
+            );
+        }
+
+        $enrollment->update($validated);
 
         $enrollment->schedules()->sync($merged);
 
