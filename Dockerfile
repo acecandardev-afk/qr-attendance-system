@@ -1,8 +1,8 @@
 FROM php:8.2-apache
 
-# Debian Bookworm defaults to mpm_event, but mod_php requires mpm_prefork.
-# Disable event/worker MPMs first to avoid "More than one MPM loaded" error.
-RUN a2dismod mpm_event mpm_worker 2>/dev/null || true \
+# Remove ALL MPM symlinks directly, then enable only mpm_prefork (required by mod_php).
+# Using a2dismod is unreliable on Bookworm — direct deletion is guaranteed.
+RUN find /etc/apache2/mods-enabled/ -name 'mpm_*' -delete \
     && a2enmod mpm_prefork \
     && a2enmod rewrite
 
