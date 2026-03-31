@@ -91,6 +91,9 @@
 
         /* ── Mobile responsive ── */
         @media (max-width: 767px) {
+            .app-shell {
+                flex-direction: column;
+            }
             .app-sidebar {
                 transform: translateX(-100%);
                 transition: transform 220ms ease;
