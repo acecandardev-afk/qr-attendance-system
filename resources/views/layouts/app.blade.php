@@ -4,8 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="theme-color" content="#2563eb">
+    <meta name="theme-color" content="#2563eb" id="meta-theme-color">
     <title>{{ config('app.name') }} - @yield('title')</title>
+
+    {{-- Apply saved theme before paint (default: light) --}}
+    <script>
+        (function () {
+            try {
+                var k = 'theme_preference_v1';
+                var saved = localStorage.getItem(k);
+                var theme = saved === 'dark' || saved === 'light' ? saved : 'light';
+                var dark = theme === 'dark';
+                document.documentElement.classList.toggle('dark', dark);
+                var meta = document.getElementById('meta-theme-color');
+                if (meta) meta.setAttribute('content', dark ? '#0f172a' : '#f8fafc');
+            } catch (e) { /* ignore */ }
+        })();
+    </script>
 
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -222,54 +237,6 @@
             background: #ef4444;
         }
 
-        .sidebar-theme-btn {
-            width: 100%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: space-between;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 0.7rem;
-            padding: 0.5rem 0.72rem;
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: rgba(255,255,255,0.8);
-            background: rgba(255,255,255,0.08);
-        }
-
-        .sidebar-theme-btn:hover {
-            background: rgba(255,255,255,0.14);
-        }
-
-        .sidebar-theme-btn .toggle-pill {
-            width: 2rem;
-            height: 1.1rem;
-            border-radius: 9999px;
-            background: rgba(255,255,255,0.25);
-            position: relative;
-            transition: all 200ms ease;
-        }
-
-        .sidebar-theme-btn .toggle-pill::after {
-            content: "";
-            width: 0.84rem;
-            height: 0.84rem;
-            background: #fff;
-            border-radius: 50%;
-            position: absolute;
-            top: 0.13rem;
-            left: 0.13rem;
-            transition: all 200ms ease;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-        }
-
-        .dark .sidebar-theme-btn .toggle-pill {
-            background: #3b82f6;
-        }
-
-        .dark .sidebar-theme-btn .toggle-pill::after {
-            left: 0.95rem;
-        }
-
         /* Cards and surfaces */
         .surface,
         .bg-white.rounded-lg.shadow,
@@ -325,6 +292,21 @@
     </style>
 </head>
 <body class="bg-gray-100 antialiased @auth app-fluid @endauth">
+    <button
+        type="button"
+        id="theme-toggle"
+        class="fixed top-4 right-4 z-[100] inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white/95 p-2.5 text-amber-600 shadow-md backdrop-blur transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:border-slate-600 dark:bg-slate-800/95 dark:text-amber-400 dark:hover:bg-slate-700"
+        onclick="window.toggleTheme && window.toggleTheme()"
+        aria-label="Toggle light or dark theme"
+        title="Toggle theme"
+    >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+        </svg>
+        <svg xmlns="http://www.w3.org/2000/svg" class="hidden h-6 w-6 dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+    </button>
     @auth
     <div class="app-shell flex" x-data="{ sidebarOpen: false }">
 
@@ -384,16 +366,6 @@
 
                 <div class="sidebar-bottom mt-auto">
                     <p class="text-sm font-semibold text-slate-700 truncate mb-2">{{ Auth::user()->full_name }}</p>
-                    <button
-                        type="button"
-                        class="sidebar-theme-btn focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        onclick="window.toggleTheme && window.toggleTheme()"
-                        aria-label="Toggle dark mode"
-                        title="Toggle dark mode"
-                    >
-                        <span>Dark Mode</span>
-                        <span class="toggle-pill" aria-hidden="true"></span>
-                    </button>
                     <form method="POST" action="{{ route('logout') }}" class="mt-2">
                         @csrf
                         <button type="submit" class="sidebar-logout">

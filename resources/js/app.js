@@ -6,12 +6,16 @@ Alpine.start();
 
 // Theme (light/dark) toggle
 // - Persists in localStorage
-// - Defaults to OS preference if not set
+// - Defaults to light if not set
 const THEME_KEY = 'theme_preference_v1';
 
 function applyTheme(theme) {
     const isDark = theme === 'dark';
     document.documentElement.classList.toggle('dark', isDark);
+    const meta = document.getElementById('meta-theme-color');
+    if (meta) {
+        meta.setAttribute('content', isDark ? '#0f172a' : '#f8fafc');
+    }
     try {
         localStorage.setItem(THEME_KEY, theme);
     } catch (e) {
@@ -26,7 +30,7 @@ function getPreferredTheme() {
     } catch (e) {
         // ignore
     }
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    return 'light';
 }
 
 window.setTheme = (theme) => applyTheme(theme);
