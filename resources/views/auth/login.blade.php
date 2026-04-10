@@ -34,21 +34,20 @@
                 <form method="POST" action="{{ route('login.post') }}" class="space-y-5">
                     @csrf
 
-                    <!-- Username (school ID) -->
                     <div>
-                        <label for="user_id" class="block text-sm font-medium text-gray-700 mb-2">Username (ID number)</label>
+                        <label for="login" class="block text-sm font-medium text-gray-700 mb-2">Username or email</label>
                         <input
                             type="text"
-                            name="user_id"
-                            id="user_id"
-                            value="{{ old('user_id') }}"
+                            name="login"
+                            id="login"
+                            value="{{ old('login') }}"
                             required
                             autofocus
                             autocomplete="username"
-                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm @error('user_id') border-red-500 @enderror"
-                            placeholder="e.g. STU-2024-001"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm @error('login') border-red-500 @enderror"
+                            placeholder="School ID or email address"
                         >
-                        @error('user_id')
+                        @error('login')
                             <p class="text-red-500 text-xs mt-1 text-center">{{ $message }}</p>
                         @enderror
                     </div>

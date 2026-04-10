@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
@@ -23,23 +24,28 @@ class LoginController extends Controller
     public function login(Request $request)
     {
         $validated = $request->validate([
-            'user_id' => ['required', 'string', 'max:255'],
+            'login' => ['required', 'string', 'max:255'],
             'password' => ['required'],
         ]);
 
         $remember = $request->boolean('remember');
 
-        $user = User::where('user_id', $validated['user_id'])->first();
+        $login = trim($validated['login']);
+
+        $user = User::where('user_id', $login)->first();
+        if (! $user) {
+            $user = User::whereRaw('LOWER(email) = ?', [Str::lower($login)])->first();
+        }
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'user_id' => 'The username or password you entered is incorrect.',
+                'login' => 'The username or password you entered is incorrect.',
             ]);
         }
 
         if ($user->status !== 'active') {
             throw ValidationException::withMessages([
-                'user_id' => 'Your account has been deactivated. Please contact the administrator.',
+                'login' => 'Your account has been deactivated. Please contact the administrator.',
             ]);
         }
 
