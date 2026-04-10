@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Carbon\Carbon;
 
 class Schedule extends Model
 {
     use HasFactory, SoftDeletes;
+
+    public const DAY_PATTERNS = ['MWF', 'TTH', 'F', 'Sat', 'Sun'];
 
     protected $fillable = [
         'course_id',
@@ -19,7 +21,6 @@ class Schedule extends Model
         'start_time',
         'end_time',
         'room',
-        'network_identifier',
         'status',
     ];
 
@@ -55,6 +56,17 @@ class Schedule extends Model
     }
 
     // Scopes
+    public function scopeOrderByDayPattern($query)
+    {
+        return $query->orderByRaw("CASE day_of_week
+            WHEN 'MWF' THEN 1
+            WHEN 'TTH' THEN 2
+            WHEN 'F' THEN 3
+            WHEN 'Sat' THEN 4
+            WHEN 'Sun' THEN 5
+            ELSE 99 END");
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
@@ -70,9 +82,45 @@ class Schedule extends Model
         return $query->where('day_of_week', $day);
     }
 
+    /**
+     * Day patterns that apply to the given calendar date (Mon–Sun).
+     *
+     * @return array<int, string>
+     */
+    public static function dayPatternsForDate(Carbon $date): array
+    {
+        $d = $date->dayOfWeek;
+
+        $patterns = [];
+        if (in_array($d, [1, 3, 5], true)) {
+            $patterns[] = 'MWF';
+        }
+        if (in_array($d, [2, 4], true)) {
+            $patterns[] = 'TTH';
+        }
+        if ($d === 5) {
+            $patterns[] = 'F';
+        }
+        if ($d === 6) {
+            $patterns[] = 'Sat';
+        }
+        if ($d === 0) {
+            $patterns[] = 'Sun';
+        }
+
+        return $patterns;
+    }
+
+    public static function primaryPatternForDate(Carbon $date): string
+    {
+        $patterns = self::dayPatternsForDate($date);
+
+        return $patterns[0] ?? 'Sun';
+    }
+
     public function scopeToday($query)
     {
-        return $query->where('day_of_week', Carbon::now()->format('l'));
+        return $query->whereIn('day_of_week', self::dayPatternsForDate(Carbon::now()));
     }
 
     public function scopeBySection($query, $sectionId)
@@ -88,12 +136,12 @@ class Schedule extends Model
 
     public function isToday()
     {
-        return $this->day_of_week === Carbon::now()->format('l');
+        return in_array($this->day_of_week, self::dayPatternsForDate(Carbon::now()), true);
     }
 
     public function isHappeningNow($toleranceMinutes = 15)
     {
-        if (!$this->isToday()) {
+        if (! $this->isToday()) {
             return false;
         }
 
@@ -106,7 +154,7 @@ class Schedule extends Model
 
     public function getTimeRangeAttribute()
     {
-        return Carbon::parse($this->start_time)->format('g:i A') . ' - ' . 
+        return Carbon::parse($this->start_time)->format('g:i A').' - '.
                Carbon::parse($this->end_time)->format('g:i A');
     }
 

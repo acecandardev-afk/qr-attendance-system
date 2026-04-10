@@ -7,7 +7,7 @@
     <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-800">Attendance Settings</h1>
         <p class="text-gray-600 mt-2 text-sm">
-            Configure global rules for QR expiration, lateness thresholds, network restrictions, and automatic session closure.
+            Simple options for QR codes, lateness, scan limits, and automatic session closure.
         </p>
     </div>
 
@@ -74,23 +74,6 @@
                     <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
                 @enderror
             </div>
-
-            <div class="flex items-center">
-                <input
-                    id="require_network_match"
-                    type="checkbox"
-                    name="require_network_match"
-                    value="1"
-                    @checked(old('require_network_match', $settings['require_network_match']) == true)
-                    class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                >
-                <label for="require_network_match" class="ml-2 block text-sm text-gray-700">
-                    Require classroom network match
-                </label>
-            </div>
-            <p class="text-xs text-gray-500 -mt-2 mb-2 ml-6">
-                When enabled, students must be on the allowed subnet configured on schedules (e.g., 192.168.1.0/24).
-            </p>
 
             <div class="flex items-center">
                 <input

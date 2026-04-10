@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
@@ -20,33 +22,31 @@ class LoginController extends Controller
 
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
+        $validated = $request->validate([
+            'user_id' => ['required', 'string', 'max:255'],
             'password' => ['required'],
         ]);
 
         $remember = $request->boolean('remember');
 
-        if (Auth::attempt($credentials, $remember)) {
-            $request->session()->regenerate();
-            $request->session()->forget('url.intended');
+        $user = User::where('user_id', $validated['user_id'])->first();
 
-            // Check if user is active
-            if (Auth::user()->status !== 'active') {
-                Auth::logout();
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
-
-                throw ValidationException::withMessages([
-                    'email' => 'Your account has been deactivated. Please contact the administrator.',
-                ]);
-            }
-
-            return redirect()->route('dashboard');
+        if (! $user || ! Hash::check($validated['password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'user_id' => 'The username or password you entered is incorrect.',
+            ]);
         }
 
-        throw ValidationException::withMessages([
-            'email' => 'The email or password you entered is incorrect.',
-        ]);
+        if ($user->status !== 'active') {
+            throw ValidationException::withMessages([
+                'user_id' => 'Your account has been deactivated. Please contact the administrator.',
+            ]);
+        }
+
+        Auth::login($user, $remember);
+        $request->session()->regenerate();
+        $request->session()->forget('url.intended');
+
+        return redirect()->route('dashboard');
     }
 }

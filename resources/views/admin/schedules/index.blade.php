@@ -6,19 +6,13 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="mb-8 flex justify-between items-center">
         <div>
-            <h1 class="text-3xl font-bold text-gray-800">Manage Schedules</h1>
-            <p class="text-gray-600 mt-2">Manage class schedules and timetables</p>
+            <h1 class="text-3xl font-bold text-gray-800">Class schedules</h1>
+            <p class="text-gray-600 mt-2">When and where each subject meets</p>
         </div>
         <a href="{{ route('admin.schedules.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold">
-            + Add Schedule
+            + Add schedule
         </a>
     </div>
-
-    @if(session('success'))
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
-            {{ session('success') }}
-        </div>
-    @endif
 
     <!-- Filters -->
     <div class="bg-white rounded-lg shadow p-6 mb-6">
@@ -48,13 +42,11 @@
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Day of Week</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Class days</label>
                 <select name="day_of_week" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                    <option value="">All Days</option>
-                    @foreach(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as $day)
-                        <option value="{{ $day }}" {{ request('day_of_week') == $day ? 'selected' : '' }}>
-                            {{ $day }}
-                        </option>
+                    <option value="">All patterns</option>
+                    @foreach(\App\Models\Schedule::DAY_PATTERNS as $pat)
+                        <option value="{{ $pat }}" {{ request('day_of_week') == $pat ? 'selected' : '' }}>{{ $pat }}</option>
                     @endforeach
                 </select>
             </div>
@@ -75,17 +67,17 @@
     <div class="bg-white rounded-lg shadow overflow-hidden" x-data="window.adminBulkToolbar(@js($bulkFormId), 'schedules')" x-init="syncCount()">
         <form id="{{ $bulkFormId }}" method="POST" action="{{ route('admin.schedules.bulk-destroy') }}">
             @csrf
-            @include('partials.admin-bulk-toolbar', ['itemLabel' => 'schedules'])
+            @include('partials.admin-bulk-toolbar', ['itemLabel' => 'schedules', 'archive' => true])
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
                     <th scope="col" class="w-12 pl-4 pr-2 py-3">
                         <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" aria-label="Select all on this page" @change="toggleAll($event.target.checked)">
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Course</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Section</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Faculty</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Day</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Days</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Room</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -129,10 +121,10 @@
                             <a href="{{ route('admin.schedules.edit', $schedule->id) }}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
                             @include('partials.confirm-action', [
                                 'action' => route('admin.schedules.destroy', $schedule->id),
-                                'title' => 'Delete this schedule?',
-                                'message' => 'This removes the class time slot from the timetable. If sessions already used it, check reports before deleting.',
-                                'trigger' => 'Delete',
-                                'confirm' => 'Delete',
+                                'title' => 'Archive this class schedule?',
+                                'message' => 'It will be hidden from the timetable. Past attendance records stay in the system.',
+                                'trigger' => 'Archive',
+                                'confirm' => 'Archive',
                             ])
                         </td>
                     </tr>

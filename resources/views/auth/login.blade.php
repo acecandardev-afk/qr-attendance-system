@@ -34,21 +34,22 @@
                 <form method="POST" action="{{ route('login.post') }}" class="space-y-5">
                     @csrf
 
-                    <!-- Email -->
+                    <!-- Username (school ID) -->
                     <div>
-                        <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
-                        <input 
-                            type="email" 
-                            name="email" 
-                            id="email" 
-                            value="{{ old('email') }}"
-                            required 
+                        <label for="user_id" class="block text-sm font-medium text-gray-700 mb-2">Username (ID number)</label>
+                        <input
+                            type="text"
+                            name="user_id"
+                            id="user_id"
+                            value="{{ old('user_id') }}"
+                            required
                             autofocus
-                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm @error('email') border-red-500 @enderror"
-                            placeholder="you@example.com"
+                            autocomplete="username"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm @error('user_id') border-red-500 @enderror"
+                            placeholder="e.g. STU-2024-001"
                         >
-                        @error('email')
-                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        @error('user_id')
+                            <p class="text-red-500 text-xs mt-1 text-center">{{ $message }}</p>
                         @enderror
                     </div>
 
@@ -64,7 +65,7 @@
                             placeholder="••••••••"
                         >
                         @error('password')
-                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                            <p class="text-red-500 text-xs mt-1 text-center">{{ $message }}</p>
                         @enderror
                     </div>
 
@@ -74,7 +75,7 @@
                             <input type="checkbox" name="remember" class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500">
                             <span class="ml-2 text-gray-600">Remember me</span>
                         </label>
-                        <a href="{{ route('password.request') }}" class="text-blue-600 hover:underline font-medium">Forgot password?</a>
+                        <a href="{{ route('password.request') }}" class="text-blue-600 hover:underline font-medium">Forgot password? (uses email)</a>
                     </div>
 
                     <!-- Submit Button -->

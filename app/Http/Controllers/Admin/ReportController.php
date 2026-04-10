@@ -34,6 +34,20 @@ class ReportController extends Controller
     }
 
     /**
+     * Printable summary for a single day (opens browser print dialog).
+     */
+    public function dailyPrint(Request $request)
+    {
+        $request->validate([
+            'date' => 'nullable|date',
+        ]);
+
+        $dailyStats = $this->reportService->getDailyAttendanceStats($request->date);
+
+        return view('admin.reports.daily-print', compact('dailyStats'));
+    }
+
+    /**
      * Student attendance report
      */
     public function studentReport(Request $request)

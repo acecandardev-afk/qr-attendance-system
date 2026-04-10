@@ -3,16 +3,16 @@
 namespace App\Http\Controllers\Faculty;
 
 use App\Http\Controllers\Controller;
+use App\Models\AttendanceRecord;
+use App\Models\AttendanceSession;
 use App\Models\Enrollment;
 use App\Models\Schedule;
-use App\Models\AttendanceSession;
-use App\Models\AttendanceRecord;
 use App\Models\User;
 use App\Services\AttendanceSessionService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Carbon\Carbon;
 
 class AttendanceSessionController extends Controller
 {
@@ -29,14 +29,14 @@ class AttendanceSessionController extends Controller
     public function index()
     {
         $faculty = Auth::user();
-        
+
         // Get today's schedules
         $todaySchedules = Schedule::byFaculty($faculty->id)
             ->today()
             ->active()
             ->with(['course', 'section', 'attendanceSessions' => function ($query) {
                 $query->where('started_at', '>=', Carbon::today())
-                      ->orderBy('started_at', 'desc');
+                    ->orderBy('started_at', 'desc');
             }])
             ->get();
 
@@ -44,7 +44,7 @@ class AttendanceSessionController extends Controller
         $allSchedules = Schedule::byFaculty($faculty->id)
             ->active()
             ->with('course', 'section')
-            ->orderBy('day_of_week')
+            ->orderByDayPattern()
             ->orderBy('start_time')
             ->get()
             ->groupBy('day_of_week');
@@ -76,7 +76,7 @@ class AttendanceSessionController extends Controller
         }
 
         // Verify schedule is for today (optional - with tolerance)
-        if (!$schedule->isToday()) {
+        if (! $schedule->isToday()) {
             return back()->with('error', 'This class is not scheduled for today. Pick today’s schedule or start an emergency class.');
         }
 
@@ -121,11 +121,10 @@ class AttendanceSessionController extends Controller
                 'course_id' => $template->course_id,
                 'section_id' => $template->section_id,
                 'faculty_id' => $faculty->id,
-                'day_of_week' => $start->format('l'),
+                'day_of_week' => $template->day_of_week,
                 'start_time' => $start->format('H:i:s'),
                 'end_time' => $end->format('H:i:s'),
                 'room' => $validated['room'] ?? $template->room,
-                'network_identifier' => $template->network_identifier,
                 'status' => 'active',
             ]);
 
@@ -176,7 +175,7 @@ class AttendanceSessionController extends Controller
         // QR code: use stored file if present, otherwise generate inline so it always displays
         $qrCodeUrl = null;
         if ($session->qr_code_path && Storage::disk('public')->exists($session->qr_code_path)) {
-            $qrCodeUrl = asset('storage/' . $session->qr_code_path);
+            $qrCodeUrl = asset('storage/'.$session->qr_code_path);
         }
         if (! $qrCodeUrl) {
             $qrCodeUrl = $this->sessionService->getQrCodeDataUrl($session);
@@ -267,7 +266,7 @@ class AttendanceSessionController extends Controller
             ->first();
 
         // Treat "absent" or null as "no record" so reports continue to derive absences
-        if (!$status || $status === 'absent') {
+        if (! $status || $status === 'absent') {
             if ($record) {
                 $record->delete();
             }
@@ -284,7 +283,7 @@ class AttendanceSessionController extends Controller
                     'status' => $status,
                     'marked_at' => now(),
                     'ip_address' => $request->ip(),
-                    'network_identifier' => $this->sessionService->getNetworkIdentifier($request->ip()),
+                    'network_identifier' => null,
                 ]);
             }
         }
@@ -338,6 +337,7 @@ class AttendanceSessionController extends Controller
                 if ($record) {
                     $record->delete();
                 }
+
                 continue;
             }
 
@@ -353,7 +353,7 @@ class AttendanceSessionController extends Controller
                     'status' => $validated['status'],
                     'marked_at' => now(),
                     'ip_address' => $request->ip(),
-                    'network_identifier' => $this->sessionService->getNetworkIdentifier($request->ip()),
+                    'network_identifier' => null,
                 ]);
             }
         }

@@ -100,6 +100,11 @@
     let html5QrCode = null;
     let isScanning = false;
     let lastDecodedText = null;
+    /** Stops the camera from firing many reads/sec → multiple POSTs for one physical scan */
+    let scanInFlight = false;
+    let lastSubmittedPayload = null;
+    let lastSubmittedAt = 0;
+    const SCAN_COOLDOWN_MS = 8000;
 
     const startButton = document.getElementById('start-scanner');
     const stopButton = document.getElementById('stop-scanner');
@@ -302,13 +307,26 @@
     }
 
     function onScanSuccess(decodedText, decodedResult) {
-        // Stop scanner immediately after successful scan
+        const now = Date.now();
+        if (scanInFlight) {
+            return;
+        }
+        if (decodedText === lastSubmittedPayload && (now - lastSubmittedAt) < SCAN_COOLDOWN_MS) {
+            return;
+        }
+
+        scanInFlight = true;
+        lastSubmittedPayload = decodedText;
+        lastSubmittedAt = now;
+
+        // Stop scanner immediately after a read (stop is async; guard above prevents duplicate POSTs)
         stopScanner();
 
         lastDecodedText = decodedText;
 
         // If offline, queue the scan locally for later sync
         if (!navigator.onLine) {
+            scanInFlight = false;
             enqueueScan(decodedText);
             showMessage(
                 '<strong>Saved offline.</strong><br>Your attendance scan has been stored and will be submitted automatically when you are back online.',
@@ -375,6 +393,9 @@
             if (!navigator.onLine) {
                 enqueueScan(decodedText);
             }
+        })
+        .finally(() => {
+            scanInFlight = false;
         });
     }
 

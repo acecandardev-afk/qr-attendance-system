@@ -37,7 +37,17 @@ class EnrollmentController extends Controller
             $query->where('status', $request->status);
         }
 
-        $enrollments = $query->latest()->paginate(20);
+        if ($request->filled('q')) {
+            $term = '%'.str_replace(['%', '_'], ['\\%', '\\_'], trim($request->q)).'%';
+            $query->whereHas('student', function ($q) use ($term) {
+                $q->where('user_id', 'like', $term)
+                    ->orWhere('first_name', 'like', $term)
+                    ->orWhere('last_name', 'like', $term)
+                    ->orWhereRaw("trim(concat(coalesce(first_name,''),' ',coalesce(last_name,''))) like ?", [$term]);
+            });
+        }
+
+        $enrollments = $query->latest()->paginate(20)->withQueryString();
         $sections = Section::active()->get();
 
         return view('admin.enrollments.index', compact('enrollments', 'sections'));

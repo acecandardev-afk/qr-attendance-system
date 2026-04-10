@@ -19,8 +19,8 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
 
         {{-- Total Schedules --}}
-        <div class="rounded-2xl p-5 flex items-center gap-4"
-             style="background:linear-gradient(135deg,#1e40af,#3b6ff7);color:#fff;box-shadow:0 8px 24px rgba(37,99,235,.3)">
+        <div class="rounded-2xl p-5 flex items-center gap-4 border-2 border-white/20"
+             style="background:linear-gradient(135deg,#1e40af,#3b6ff7) !important;color:#fff !important;box-shadow:0 8px 24px rgba(37,99,235,.35)">
             <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
                  style="background:rgba(255,255,255,.18)">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -35,8 +35,8 @@
         </div>
 
         {{-- Active Classes Today --}}
-        <div class="rounded-2xl p-5 flex items-center gap-4"
-             style="background:linear-gradient(135deg,#065f46,#059669);color:#fff;box-shadow:0 8px 24px rgba(5,150,105,.3)">
+        <div class="rounded-2xl p-5 flex items-center gap-4 border-2 border-white/20"
+             style="background:linear-gradient(135deg,#065f46,#059669) !important;color:#fff !important;box-shadow:0 8px 24px rgba(5,150,105,.35)">
             <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
                  style="background:rgba(255,255,255,.18)">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -51,8 +51,8 @@
         </div>
 
         {{-- Total Students --}}
-        <div class="rounded-2xl p-5 flex items-center gap-4"
-             style="background:linear-gradient(135deg,#6d28d9,#8b5cf6);color:#fff;box-shadow:0 8px 24px rgba(139,92,246,.3)">
+        <div class="rounded-2xl p-5 flex items-center gap-4 border-2 border-white/20"
+             style="background:linear-gradient(135deg,#6d28d9,#8b5cf6) !important;color:#fff !important;box-shadow:0 8px 24px rgba(139,92,246,.35)">
             <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
                  style="background:rgba(255,255,255,.18)">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

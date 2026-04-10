@@ -66,6 +66,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         // Reports
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/', [App\Http\Controllers\Admin\ReportController::class, 'index'])->name('index');
+            Route::get('/daily-print', [App\Http\Controllers\Admin\ReportController::class, 'dailyPrint'])->name('daily-print');
             Route::get('/student', [App\Http\Controllers\Admin\ReportController::class, 'studentReport'])->name('student');
             Route::get('/section', [App\Http\Controllers\Admin\ReportController::class, 'sectionReport'])->name('section');
             Route::get('/faculty', [App\Http\Controllers\Admin\ReportController::class, 'facultyReport'])->name('faculty');

@@ -66,7 +66,7 @@
                 
                 <div class="space-y-3">
                     <div>
-                        <p class="text-sm text-gray-600">Course</p>
+                        <p class="text-sm text-gray-600">Subject</p>
                         <p class="font-semibold text-gray-800">{{ $session->schedule->course->name }}</p>
                     </div>
                     

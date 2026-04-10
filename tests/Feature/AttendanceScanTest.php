@@ -20,6 +20,11 @@ class AttendanceScanTest extends TestCase
             ->assertJson(['status' => 'ok']);
     }
 
+    public function test_framework_health_route_is_available(): void
+    {
+        $this->get('/up')->assertOk();
+    }
+
     public function test_password_reset_request_page_is_available_for_guests(): void
     {
         $this->get(route('password.request'))->assertOk();

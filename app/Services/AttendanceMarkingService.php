@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\AttendanceSession;
-use App\Models\AttendanceRecord;
 use App\Models\AttendanceAttempt;
+use App\Models\AttendanceRecord;
+use App\Models\AttendanceSession;
 use App\Models\Enrollment;
 use App\Models\User;
 use App\Support\AttendanceConfig;
@@ -36,7 +36,7 @@ class AttendanceMarkingService
             // Step 1.1: Reject stale signed payloads (helps protect replay from delayed/offline queue sync)
             $payloadTimestamp = isset($qrData['timestamp']) ? Carbon::createFromTimestamp((int) $qrData['timestamp']) : null;
             $maxPayloadAge = (int) AttendanceConfig::get('qr_expiration_minutes', 10) + 5; // grace window
-            if (!$payloadTimestamp || $payloadTimestamp->lt(Carbon::now()->subMinutes($maxPayloadAge))) {
+            if (! $payloadTimestamp || $payloadTimestamp->lt(Carbon::now()->subMinutes($maxPayloadAge))) {
                 throw new \Exception('This attendance code is too old. Ask your instructor to show the current QR code.');
             }
 
@@ -46,7 +46,7 @@ class AttendanceMarkingService
 
             // Step 3: Validate session token matches
             if ($session->session_token !== $qrData['token']) {
-                $this->logAttempt($session->id, $student->id, $qrData['token'], 'invalid_token', 
+                $this->logAttempt($session->id, $student->id, $qrData['token'], 'invalid_token',
                     $ipAddress, $userAgent, 'Session token mismatch');
                 throw new \Exception('This attendance code does not match the active session. Scan the QR code your instructor is displaying now.');
             }
@@ -56,14 +56,14 @@ class AttendanceMarkingService
 
             // Step 5: Validate session is active
             if ($session->status !== 'active') {
-                $this->logAttempt($session->id, $student->id, $session->session_token, 'expired', 
+                $this->logAttempt($session->id, $student->id, $session->session_token, 'expired',
                     $ipAddress, $userAgent, "Session status: {$session->status}");
                 throw new \Exception('This check-in is already closed. If you are in class, ask your instructor to start a new attendance session.');
             }
 
             // Step 6: Check if session has expired
             if ($session->isExpired()) {
-                $this->logAttempt($session->id, $student->id, $session->session_token, 'expired', 
+                $this->logAttempt($session->id, $student->id, $session->session_token, 'expired',
                     $ipAddress, $userAgent, 'Session has expired');
                 throw new \Exception('This QR code has expired. Ask your instructor to refresh the attendance code.');
             }
@@ -74,8 +74,8 @@ class AttendanceMarkingService
                 ->eligibleForSchedule($session->schedule)
                 ->exists();
 
-            if (!$isEnrolled) {
-                $this->logAttempt($session->id, $student->id, $session->session_token, 'not_enrolled', 
+            if (! $isEnrolled) {
+                $this->logAttempt($session->id, $student->id, $session->session_token, 'not_enrolled',
                     $ipAddress, $userAgent, 'Student not enrolled in this section');
                 throw new \Exception('You are not enrolled in this class, so attendance cannot be recorded.');
             }
@@ -86,38 +86,26 @@ class AttendanceMarkingService
                 ->first();
 
             if ($existingRecord) {
-                $this->logAttempt($session->id, $student->id, $session->session_token, 'duplicate', 
+                $this->logAttempt($session->id, $student->id, $session->session_token, 'duplicate',
                     $ipAddress, $userAgent, 'Attendance already marked');
                 throw new \Exception('Your attendance for this class is already recorded.');
             }
 
-            // Step 9: Validate network (if required)
-            if (AttendanceConfig::get('require_network_match', true)) {
-                $studentNetwork = $this->sessionService->getNetworkIdentifier($ipAddress);
-                $allowedNetwork = $session->schedule->network_identifier;
-
-                if (!$this->sessionService->isNetworkAllowed($ipAddress, $allowedNetwork)) {
-                    $this->logAttempt($session->id, $student->id, $session->session_token, 'network_mismatch', 
-                        $ipAddress, $userAgent, "Network mismatch: {$studentNetwork} vs {$allowedNetwork}");
-                    throw new \Exception('Connect to the classroom network, then try again. If you need help, ask your instructor.');
-                }
-            }
-
-            // Step 10: Determine attendance status (present or late)
+            // Step 9: Determine attendance status (present or late)
             $attendanceStatus = $this->determineAttendanceStatus($session);
 
-            // Step 11: Create attendance record
+            // Step 10: Create attendance record
             $record = AttendanceRecord::create([
                 'attendance_session_id' => $session->id,
                 'student_id' => $student->id,
                 'status' => $attendanceStatus,
                 'marked_at' => Carbon::now(),
                 'ip_address' => $ipAddress,
-                'network_identifier' => $this->sessionService->getNetworkIdentifier($ipAddress),
+                'network_identifier' => null,
             ]);
 
-            // Step 12: Log successful attempt
-            $this->logAttempt($session->id, $student->id, $session->session_token, 'success', 
+            // Step 11: Log successful attempt
+            $this->logAttempt($session->id, $student->id, $session->session_token, 'success',
                 $ipAddress, $userAgent, null);
 
             DB::commit();
@@ -177,7 +165,7 @@ class AttendanceMarkingService
             ->count();
 
         if ($recentAttempts >= $rateLimit) {
-            $this->logAttempt(null, $studentId, null, 'rate_limited', 
+            $this->logAttempt(null, $studentId, null, 'rate_limited',
                 $ipAddress, $userAgent, 'Too many scan attempts');
             throw new \Exception('Too many scan attempts. Please wait a moment and try again.');
         }
@@ -216,12 +204,12 @@ class AttendanceMarkingService
      * Log attendance attempt
      */
     protected function logAttempt(
-        ?int $sessionId, 
-        ?int $studentId, 
-        ?string $token, 
-        string $result, 
-        string $ipAddress, 
-        string $userAgent, 
+        ?int $sessionId,
+        ?int $studentId,
+        ?string $token,
+        string $result,
+        string $ipAddress,
+        string $userAgent,
         ?string $errorMessage
     ): void {
         AttendanceAttempt::create([
@@ -230,7 +218,7 @@ class AttendanceMarkingService
             'session_token' => $token,
             'result' => $result,
             'ip_address' => $ipAddress,
-            'network_identifier' => $this->sessionService->getNetworkIdentifier($ipAddress),
+            'network_identifier' => null,
             'error_message' => $errorMessage,
             'user_agent' => $userAgent,
         ]);

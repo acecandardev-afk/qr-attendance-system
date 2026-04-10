@@ -7,30 +7,30 @@ return [
     |--------------------------------------------------------------------------
     */
     'qr_expiration_minutes' => (int) env('QR_EXPIRATION_MINUTES', 10),
-    
+
     /*
     |--------------------------------------------------------------------------
     | Attendance Rules
     |--------------------------------------------------------------------------
     */
     'late_threshold_minutes' => (int) env('ATTENDANCE_LATE_THRESHOLD_MINUTES', 15),
-    
+
     /*
     |--------------------------------------------------------------------------
     | Security Settings
     |--------------------------------------------------------------------------
     */
     'rate_limit_scans_per_minute' => (int) env('RATE_LIMIT_SCANS_PER_MINUTE', 30),
-    
-    'require_network_match' => env('REQUIRE_NETWORK_MATCH', true),
-    
+
+    'require_network_match' => env('REQUIRE_NETWORK_MATCH', false),
+
     /*
     |--------------------------------------------------------------------------
     | QR Code Storage
     |--------------------------------------------------------------------------
     */
     'qr_storage_path' => 'qrcodes', // Inside storage/app/public/
-    
+
     /*
     |--------------------------------------------------------------------------
     | Session Auto-Close

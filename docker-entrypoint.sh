@@ -1,7 +1,11 @@
 #!/bin/bash
+set -e
 
 # Create storage symlink
 php artisan storage:link --quiet 2>/dev/null || true
+
+# Apply migrations (Railway / production DB must be reachable)
+php artisan migrate --force --no-interaction
 
 # Cache config, routes, and views
 php artisan config:cache 2>/dev/null || true

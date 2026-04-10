@@ -20,6 +20,40 @@ class EnrollmentController extends Controller
      *
      * @return array<int, int>
      */
+    /**
+     * Students a faculty member may enroll: same department, or already on their section rosters.
+     *
+     * @param  array<int, int>  $sectionIds
+     * @return \Illuminate\Database\Eloquent\Collection<int, User>
+     */
+    protected function studentsSelectableByFaculty(User $faculty, array $sectionIds)
+    {
+        $rosterIds = Enrollment::query()
+            ->whereIn('section_id', $sectionIds)
+            ->where('status', 'enrolled')
+            ->pluck('student_id')
+            ->unique()
+            ->filter()
+            ->all();
+
+        $base = User::students()->active();
+
+        if ($faculty->department_id && $rosterIds !== []) {
+            $students = $base->where(function ($q) use ($faculty, $rosterIds) {
+                $q->where('department_id', $faculty->department_id)
+                    ->orWhereIn('id', $rosterIds);
+            });
+        } elseif ($faculty->department_id) {
+            $students = $base->where('department_id', $faculty->department_id);
+        } elseif ($rosterIds !== []) {
+            $students = $base->whereIn('id', $rosterIds);
+        } else {
+            $students = $base->whereRaw('1 = 0');
+        }
+
+        return $students->orderBy('last_name')->orderBy('first_name')->get();
+    }
+
     protected function facultySectionIds(User $faculty): array
     {
         return Schedule::query()
@@ -59,7 +93,17 @@ class EnrollmentController extends Controller
             $query->where('status', $request->status);
         }
 
-        $enrollments = $query->latest()->paginate(20);
+        if ($request->filled('q')) {
+            $term = '%'.str_replace(['%', '_'], ['\\%', '\\_'], trim($request->q)).'%';
+            $query->whereHas('student', function ($q) use ($term) {
+                $q->where('user_id', 'like', $term)
+                    ->orWhere('first_name', 'like', $term)
+                    ->orWhere('last_name', 'like', $term)
+                    ->orWhereRaw("trim(concat(coalesce(first_name,''),' ',coalesce(last_name,''))) like ?", [$term]);
+            });
+        }
+
+        $enrollments = $query->latest()->paginate(20)->withQueryString();
         $sections = Section::active()->whereIn('id', $sectionIds)->orderBy('name')->get();
 
         return view('faculty.enrollments.index', compact('enrollments', 'sections'));
@@ -76,7 +120,7 @@ class EnrollmentController extends Controller
         }
 
         $sections = Section::active()->whereIn('id', $sectionIds)->orderBy('name')->get();
-        $students = User::students()->active()->orderBy('last_name')->orderBy('first_name')->get();
+        $students = $this->studentsSelectableByFaculty($faculty, $sectionIds);
         $schedulesBySection = $this->schedulesGroupedForFacultySections($faculty, $sections);
 
         return view('faculty.enrollments.create', compact('students', 'sections', 'schedulesBySection'));
@@ -99,6 +143,11 @@ class EnrollmentController extends Controller
 
         if (! in_array((int) $validated['section_id'], $sectionIds, true)) {
             return back()->withInput()->with('error', 'You can only enroll students in sections where you teach.');
+        }
+
+        $allowedStudentIds = $this->studentsSelectableByFaculty($faculty, $sectionIds)->pluck('id')->all();
+        if (! in_array((int) $validated['student_id'], $allowedStudentIds, true)) {
+            return back()->withInput()->with('error', 'You can only choose students from your department or who are already in your classes.');
         }
 
         $myScheduleIds = $this->validatedScheduleIdsForFacultySection(
@@ -145,7 +194,7 @@ class EnrollmentController extends Controller
         }
 
         $sections = Section::active()->whereIn('id', $sectionIds)->orderBy('name')->get();
-        $students = User::students()->active()->orderBy('last_name')->orderBy('first_name')->get();
+        $students = $this->studentsSelectableByFaculty($faculty, $sectionIds);
         $schedulesBySection = $this->schedulesGroupedForFacultySections($faculty, $sections);
 
         return view('faculty.enrollments.edit', compact('enrollment', 'students', 'sections', 'schedulesBySection'));
@@ -174,6 +223,11 @@ class EnrollmentController extends Controller
 
         if (! in_array((int) $validated['section_id'], $sectionIds, true)) {
             return back()->withInput()->with('error', 'You can only assign students to sections where you teach.');
+        }
+
+        $allowedStudentIds = $this->studentsSelectableByFaculty($faculty, $sectionIds)->pluck('id')->all();
+        if (! in_array((int) $validated['student_id'], $allowedStudentIds, true)) {
+            return back()->withInput()->with('error', 'You can only choose students from your department or who are already in your classes.');
         }
 
         $myScheduleIds = $this->validatedScheduleIdsForFacultySection(

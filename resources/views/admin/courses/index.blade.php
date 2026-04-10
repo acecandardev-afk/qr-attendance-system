@@ -1,24 +1,18 @@
 @extends('layouts.app')
 
-@section('title', 'Manage Courses')
+@section('title', 'Manage Subjects')
 
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="mb-8 flex justify-between items-center">
         <div>
-            <h1 class="text-3xl font-bold text-gray-800">Manage Courses</h1>
-            <p class="text-gray-600 mt-2">Manage course catalog and subjects</p>
+            <h1 class="text-3xl font-bold text-gray-800">Subjects</h1>
+            <p class="text-gray-600 mt-2">Add or edit subjects (codes and titles) used in class schedules.</p>
         </div>
         <a href="{{ route('admin.courses.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold">
-            + Add Course
+            + Add subject
         </a>
     </div>
-
-    @if(session('success'))
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
-            {{ session('success') }}
-        </div>
-    @endif
 
     <!-- Filters -->
     <div class="bg-white rounded-lg shadow p-6 mb-6">

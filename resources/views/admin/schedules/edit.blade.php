@@ -1,14 +1,14 @@
 @extends('layouts.app')
 
-@section('title', 'Edit Schedule')
+@section('title', 'Edit class schedule')
 
 @section('content')
 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="mb-8">
         <a href="{{ route('admin.schedules.index') }}" class="text-blue-600 hover:text-blue-800 text-sm">
-            ← Back to Schedules
+            ← Back to class schedules
         </a>
-        <h1 class="text-3xl font-bold text-gray-800 mt-2">Edit Schedule</h1>
+        <h1 class="text-3xl font-bold text-gray-800 mt-2">Edit class schedule</h1>
     </div>
 
     <div class="bg-white rounded-lg shadow p-6">
@@ -17,11 +17,11 @@
             @method('PUT')
 
             <div class="space-y-6">
-                <!-- Course -->
+                <!-- Subject -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Course *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Subject *</label>
                     <select name="course_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg @error('course_id') border-red-500 @enderror">
-                        <option value="">Select Course</option>
+                        <option value="">Select subject</option>
                         @foreach($courses as $course)
                             <option value="{{ $course->id }}" {{ old('course_id', $schedule->course_id) == $course->id ? 'selected' : '' }}>
                                 {{ $course->code }} - {{ $course->name }}
@@ -65,13 +65,27 @@
                     @enderror
                 </div>
 
-                <!-- Day of Week -->
+                <!-- Meeting pattern -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Day of Week *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Class days *</label>
                     <select name="day_of_week" required class="w-full px-4 py-2 border border-gray-300 rounded-lg @error('day_of_week') border-red-500 @enderror">
-                        @foreach(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as $day)
-                            <option value="{{ $day }}" {{ old('day_of_week', $schedule->day_of_week) == $day ? 'selected' : '' }}>
-                                {{ $day }}
+                        @php
+                            $patOpts = \App\Models\Schedule::DAY_PATTERNS;
+                            $curDay = old('day_of_week', $schedule->day_of_week);
+                            if (! in_array($curDay, $patOpts, true)) {
+                                $patOpts = array_values(array_unique(array_merge([$curDay], $patOpts)));
+                            }
+                        @endphp
+                        @foreach($patOpts as $pat)
+                            <option value="{{ $pat }}" {{ $curDay == $pat ? 'selected' : '' }}>
+                                @switch($pat)
+                                    @case('MWF') Mon / Wed / Fri @break
+                                    @case('TTH') Tue / Thu @break
+                                    @case('F') Friday only @break
+                                    @case('Sat') Saturday @break
+                                    @case('Sun') Sunday @break
+                                    @default {{ $pat }}
+                                @endswitch
                             </option>
                         @endforeach
                     </select>
@@ -110,18 +124,6 @@
                     @enderror
                 </div>
 
-                <!-- Network Identifier -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Network Identifier</label>
-                    <input type="text" name="network_identifier" value="{{ old('network_identifier', $schedule->network_identifier) }}"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg @error('network_identifier') border-red-500 @enderror"
-                           placeholder="e.g., 192.168.1.0/24">
-                    <p class="text-xs text-gray-500 mt-1">Subnet for classroom network validation (optional)</p>
-                    @error('network_identifier')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
                 <!-- Status -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Status *</label>
@@ -140,7 +142,7 @@
                     Cancel
                 </a>
                 <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg">
-                    Update Schedule
+                    Save changes
                 </button>
             </div>
         </form>

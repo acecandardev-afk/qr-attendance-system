@@ -22,13 +22,13 @@ trait ManagesEnrollmentSchedules
         return Schedule::query()
             ->with('course')
             ->whereIn('section_id', $sections->pluck('id'))
-            ->orderBy('day_of_week')
+            ->orderByDayPattern()
             ->orderBy('start_time')
             ->get()
             ->groupBy('section_id')
             ->map(fn ($rows) => $rows->map(fn (Schedule $s) => [
                 'id' => $s->id,
-                'label' => ($s->course?->code ?? 'Course').' — '.$s->day_of_week.' '.$s->time_range.' — '.($s->room ?? '—').($s->status !== 'active' ? ' [Inactive]' : ''),
+                'label' => ($s->course?->code ?? 'Subject').' — '.$s->day_of_week.' '.$s->time_range.' — '.($s->room ?? '—').($s->status !== 'active' ? ' [Inactive]' : ''),
             ])->values());
     }
 
@@ -48,13 +48,13 @@ trait ManagesEnrollmentSchedules
             ->with('course')
             ->where('faculty_id', $faculty->id)
             ->whereIn('section_id', $sections->pluck('id'))
-            ->orderBy('day_of_week')
+            ->orderByDayPattern()
             ->orderBy('start_time')
             ->get()
             ->groupBy('section_id')
             ->map(fn ($rows) => $rows->map(fn (Schedule $s) => [
                 'id' => $s->id,
-                'label' => ($s->course?->code ?? 'Course').' — '.$s->day_of_week.' '.$s->time_range.' — '.($s->room ?? '—').($s->status !== 'active' ? ' [Inactive]' : ''),
+                'label' => ($s->course?->code ?? 'Subject').' — '.$s->day_of_week.' '.$s->time_range.' — '.($s->room ?? '—').($s->status !== 'active' ? ' [Inactive]' : ''),
             ])->values());
     }
 

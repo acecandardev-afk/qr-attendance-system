@@ -10,6 +10,7 @@ use App\Models\Schedule;
 use App\Models\Section;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ScheduleController extends Controller
 {
@@ -32,7 +33,7 @@ class ScheduleController extends Controller
             $query->where('day_of_week', $request->day_of_week);
         }
 
-        $schedules = $query->latest()->paginate(20);
+        $schedules = $query->orderByDayPattern()->orderBy('start_time')->paginate(20);
         $faculty = User::faculty()->active()->get();
         $sections = Section::active()->get();
 
@@ -65,18 +66,17 @@ class ScheduleController extends Controller
             'course_id' => 'required|exists:courses,id',
             'section_id' => 'required|exists:sections,id',
             'faculty_id' => 'required|exists:users,id',
-            'day_of_week' => 'required|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
+            'day_of_week' => ['required', Rule::in(Schedule::DAY_PATTERNS)],
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'room' => 'nullable|string|max:255',
-            'network_identifier' => 'nullable|string|max:255',
             'status' => 'required|in:active,inactive',
         ]);
 
         Schedule::create($validated);
 
         return redirect()->route('admin.schedules.index')
-            ->with('success', 'Schedule created successfully!');
+            ->with('success', 'Class schedule saved.');
     }
 
     public function edit(Schedule $schedule)
@@ -94,18 +94,17 @@ class ScheduleController extends Controller
             'course_id' => 'required|exists:courses,id',
             'section_id' => 'required|exists:sections,id',
             'faculty_id' => 'required|exists:users,id',
-            'day_of_week' => 'required|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
+            'day_of_week' => ['required', Rule::in(Schedule::DAY_PATTERNS)],
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'room' => 'nullable|string|max:255',
-            'network_identifier' => 'nullable|string|max:255',
             'status' => 'required|in:active,inactive',
         ]);
 
         $schedule->update($validated);
 
         return redirect()->route('admin.schedules.index')
-            ->with('success', 'Schedule updated successfully!');
+            ->with('success', 'Class schedule updated.');
     }
 
     public function destroy(Schedule $schedule)
@@ -113,7 +112,7 @@ class ScheduleController extends Controller
         $schedule->delete();
 
         return redirect()->route('admin.schedules.index')
-            ->with('success', 'Schedule deleted successfully!');
+            ->with('success', 'Schedule archived.');
     }
 
     public function bulkDestroy(Request $request)
@@ -121,6 +120,6 @@ class ScheduleController extends Controller
         $ids = $this->validatedBulkIds($request, 'schedules');
         Schedule::whereIn('id', $ids)->get()->each->delete();
 
-        return back()->with('success', count($ids).' schedule(s) removed.');
+        return back()->with('success', count($ids).' schedule(s) archived.');
     }
 }

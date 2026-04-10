@@ -22,10 +22,18 @@
                 >
             </div>
 
-            <div class="flex-1">
-                <button type="submit" class="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg">
-                    View Report
+            <div class="flex flex-wrap gap-2 items-end">
+                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg">
+                    View report
                 </button>
+                <a
+                    href="{{ route('admin.reports.daily-print', ['date' => request('date', $dailyStats['date'] ?? now()->format('Y-m-d'))]) }}"
+                    target="_blank"
+                    rel="noopener"
+                    class="inline-flex items-center bg-slate-700 hover:bg-slate-800 text-white px-6 py-2 rounded-lg"
+                >
+                    Print this day
+                </a>
             </div>
         </form>
     </div>
@@ -73,7 +81,7 @@
                     <table class="min-w-full divide-y divide-gray-200 text-sm">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Course</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Section</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Faculty</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Started At</th>

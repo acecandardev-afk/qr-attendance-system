@@ -85,6 +85,10 @@
 
         .app-content {
             min-height: 100vh;
+            min-width: 0;
+            max-height: 100vh;
+            overflow-x: auto;
+            overflow-y: auto;
             margin-left: var(--sidebar-width);
             width: calc(100% - var(--sidebar-width));
         }
@@ -359,7 +363,7 @@
                     <a href="{{ route('admin.dashboard') }}" class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">Dashboard</a>
                     <a href="{{ route('admin.users.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">Users</a>
                     <a href="{{ route('admin.departments.index') }}" class="sidebar-link {{ request()->routeIs('admin.departments.*') ? 'active' : '' }}">Departments</a>
-                    <a href="{{ route('admin.courses.index') }}" class="sidebar-link {{ request()->routeIs('admin.courses.*') ? 'active' : '' }}">Courses</a>
+                    <a href="{{ route('admin.courses.index') }}" class="sidebar-link {{ request()->routeIs('admin.courses.*') ? 'active' : '' }}">Subjects</a>
                     <a href="{{ route('admin.sections.index') }}" class="sidebar-link {{ request()->routeIs('admin.sections.*') ? 'active' : '' }}">Sections</a>
                     <a href="{{ route('admin.schedules.index') }}" class="sidebar-link {{ request()->routeIs('admin.schedules.*') ? 'active' : '' }}">Schedules</a>
                     <a href="{{ route('admin.enrollments.index') }}" class="sidebar-link {{ request()->routeIs('admin.enrollments.*') ? 'active' : '' }}">Enrollments</a>
@@ -403,26 +407,24 @@
         <div class="app-content flex-1">
     @endauth
 
-    <!-- Global flash messages -->
-    @if(session('success') || session('error') || session('status'))
-        <div class="fixed inset-x-0 top-4 flex justify-center z-50" x-data="{ show: true }" x-show="show" x-transition>
-            <div class="max-w-md w-full mx-4">
-                @if(session('success'))
-                    <div class="mb-2 rounded-lg bg-green-100 border border-green-300 text-green-800 px-4 py-3 text-sm flex justify-between items-start">
-                        <div>{{ session('success') }}</div>
-                        <button type="button" class="ml-3 text-green-700" @click="show = false">&times;</button>
-                    </div>
-                @endif
-                @if(session('status'))
-                    <div class="mb-2 rounded-lg bg-green-100 border border-green-300 text-green-800 px-4 py-3 text-sm flex justify-between items-start">
-                        <div>{{ session('status') }}</div>
-                        <button type="button" class="ml-3 text-green-700" @click="show = false">&times;</button>
-                    </div>
-                @endif
+    <!-- Global flash (one message: error first, then success, then status — avoids duplicate greens) -->
+    @if(session('error') || session('success') || session('status'))
+        <div class="fixed inset-x-0 top-4 flex justify-center z-50 px-4 pointer-events-none" x-data="{ show: true }" x-show="show" x-transition>
+            <div class="max-w-lg w-full pointer-events-auto">
                 @if(session('error'))
-                    <div class="mb-2 rounded-lg bg-red-100 border border-red-300 text-red-800 px-4 py-3 text-sm flex justify-between items-start">
-                        <div>{{ session('error') }}</div>
-                        <button type="button" class="ml-3 text-red-700" @click="show = false">&times;</button>
+                    <div class="rounded-xl bg-red-100 border border-red-300 text-red-900 px-4 py-3 text-sm shadow-lg flex items-center gap-3">
+                        <p class="flex-1 text-center font-medium">{{ session('error') }}</p>
+                        <button type="button" class="shrink-0 text-red-700 hover:text-red-900 text-lg leading-none px-1" @click="show = false" aria-label="Dismiss">&times;</button>
+                    </div>
+                @elseif(session('success'))
+                    <div class="rounded-xl bg-green-100 border border-green-300 text-green-900 px-4 py-3 text-sm shadow-lg flex items-center gap-3">
+                        <p class="flex-1 text-center font-medium">{{ session('success') }}</p>
+                        <button type="button" class="shrink-0 text-green-800 hover:text-green-950 text-lg leading-none px-1" @click="show = false" aria-label="Dismiss">&times;</button>
+                    </div>
+                @elseif(session('status'))
+                    <div class="rounded-xl bg-green-100 border border-green-300 text-green-900 px-4 py-3 text-sm shadow-lg flex items-center gap-3">
+                        <p class="flex-1 text-center font-medium">{{ session('status') }}</p>
+                        <button type="button" class="shrink-0 text-green-800 hover:text-green-950 text-lg leading-none px-1" @click="show = false" aria-label="Dismiss">&times;</button>
                     </div>
                 @endif
             </div>

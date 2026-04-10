@@ -19,9 +19,9 @@ class DashboardController extends Controller
         }
 
         return match ($user->role) {
-            'admin'   => view('dashboard.admin', compact('user')),
+            'admin' => view('dashboard.admin', compact('user')),
             'student' => view('dashboard.student', compact('user')),
-            default   => abort(403, 'You do not have permission to open this page.'),
+            default => abort(403, 'You do not have permission to open this page.'),
         };
     }
 
@@ -30,22 +30,22 @@ class DashboardController extends Controller
         $scheduleIds = $user->facultySchedules()->active()->pluck('id');
 
         // Stat cards
-        $totalSchedules    = $scheduleIds->count();
+        $totalSchedules = $scheduleIds->count();
         $activeSessionsToday = AttendanceSession::whereIn('schedule_id', $scheduleIds)
             ->where('status', 'active')
             ->whereDate('started_at', today())
             ->count();
         $sectionIds = $user->facultySchedules()->active()->distinct('section_id')->pluck('section_id');
         $totalStudents = Enrollment::whereIn('section_id', $sectionIds)
-            ->where('status', 'active')
+            ->where('status', 'enrolled')
             ->distinct('student_id')
             ->count('student_id');
 
         // Daily attendance chart — last 14 days
-        $days   = collect();
+        $days = collect();
         $present = collect();
-        $late    = collect();
-        $absent  = collect();
+        $late = collect();
+        $absent = collect();
 
         for ($i = 13; $i >= 0; $i--) {
             $date = Carbon::today()->subDays($i);

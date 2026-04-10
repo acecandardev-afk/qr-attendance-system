@@ -16,26 +16,14 @@
         @endif
     </div>
 
-    @if(session('success'))
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-            {{ session('error') }}
-        </div>
-    @endif
-
     @if(!empty($noTeachingSections ?? false))
         <div class="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-lg">
-            You do not have any active class schedules yet. An administrator must assign you to courses and schedules before you can manage enrollments here.
+            You do not have any active class schedules yet. An administrator must assign you to subjects and schedules before you can manage enrollments here.
         </div>
     @else
     <!-- Filters -->
     <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <form method="GET" action="{{ route('faculty.enrollments.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <form method="GET" action="{{ route('faculty.enrollments.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4" x-data="{ debounceTimer: null }">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Section</label>
                 <select name="section_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
@@ -58,7 +46,20 @@
                 </select>
             </div>
 
-            <div class="md:col-span-2 flex items-end space-x-2">
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Find student</label>
+                <input
+                    type="search"
+                    name="q"
+                    value="{{ request('q') }}"
+                    placeholder="Name or ID number…"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    autocomplete="off"
+                    @input="clearTimeout(debounceTimer); debounceTimer = setTimeout(() => $el.closest('form').submit(), 450)"
+                >
+            </div>
+
+            <div class="md:col-span-4 flex flex-wrap items-end gap-2">
                 <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg">
                     Filter
                 </button>
@@ -113,7 +114,7 @@
                                 <ul class="list-disc list-inside space-y-0.5">
                                     @foreach($enrollment->schedules as $sch)
                                         <li>
-                                            <span class="font-medium">{{ $sch->course?->code ?? 'Course' }}</span>
+                                            <span class="font-medium">{{ $sch->course?->code ?? 'Subject' }}</span>
                                             <span class="text-gray-600"> — {{ $sch->day_of_week }} {{ $sch->time_range }}</span>
                                         </li>
                                     @endforeach

@@ -8,7 +8,7 @@
         <div>
             <h1 class="text-3xl font-bold text-gray-800">Attendance Security Logs</h1>
             <p class="text-gray-600 mt-2 text-sm">
-                Review successful and failed QR scan attempts, including rate limits and network mismatches.
+                Review successful and failed QR scan attempts (wrong code, expired, too many tries, etc.).
             </p>
         </div>
     </div>
@@ -54,9 +54,9 @@
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Session / Course</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Session / Subject</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Result</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP / Network</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Device address</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Message</th>
                     </tr>
                 </thead>
@@ -93,8 +93,7 @@
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-gray-900">
-                                <span class="block">{{ $attempt->ip_address }}</span>
-                                <span class="block text-xs text-gray-500">{{ $attempt->network_identifier }}</span>
+                                <span class="block text-xs">{{ $attempt->ip_address ?? '—' }}</span>
                             </td>
                             <td class="px-4 py-3 text-gray-900">
                                 <span class="block text-xs text-gray-700 truncate max-w-xs">
