@@ -42,7 +42,17 @@ class AttendanceMarkingService
 
             // Step 2: Get session
             $session = AttendanceSession::with(['schedule.section', 'schedule.course'])
-                ->findOrFail($qrData['session_id']);
+                ->find($qrData['session_id'] ?? null);
+
+            if (! $session && ! empty($qrData['token'])) {
+                $session = AttendanceSession::with(['schedule.section', 'schedule.course'])
+                    ->where('session_token', $qrData['token'])
+                    ->first();
+            }
+
+            if (! $session) {
+                throw new ModelNotFoundException('Attendance session not found');
+            }
 
             // Step 3: Validate session token matches
             if ($session->session_token !== $qrData['token']) {
