@@ -46,7 +46,15 @@
 
     <!-- Trends Chart (Simple Table View) -->
     <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 class="text-xl font-bold text-gray-800 mb-4">Daily Attendance Trends</h2>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <h2 class="text-xl font-bold text-gray-800">Daily Attendance Trends</h2>
+            <a
+                href="{{ route('admin.reports.export.trends', request()->only(['section_id','start_date','end_date'])) }}"
+                class="inline-flex items-center bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg"
+            >
+                Export CSV
+            </a>
+        </div>
         <p class="text-sm text-gray-600 mb-4">{{ $data['start_date'] }} to {{ $data['end_date'] }}</p>
 
         @if($data['trends']->count() > 0)

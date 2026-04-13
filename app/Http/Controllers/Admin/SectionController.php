@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Department;
 use App\Models\Section;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class SectionController extends Controller
 {
@@ -56,7 +57,7 @@ class SectionController extends Controller
             'name' => 'required|string|max:255',
             'department_id' => 'required|exists:departments,id',
             'year_level' => 'required|string|max:255',
-            'semester' => 'required|string|max:255',
+            'semester' => ['required', Rule::in(Section::SEMESTERS)],
             'school_year' => 'required|string|max:255',
             'status' => 'required|in:active,inactive',
         ]);
@@ -80,7 +81,7 @@ class SectionController extends Controller
             'name' => 'required|string|max:255',
             'department_id' => 'required|exists:departments,id',
             'year_level' => 'required|string|max:255',
-            'semester' => 'required|string|max:255',
+            'semester' => ['required', Rule::in(Section::SEMESTERS)],
             'school_year' => 'required|string|max:255',
             'status' => 'required|in:active,inactive',
         ]);

@@ -59,6 +59,15 @@
     </div>
 
     @if($data)
+        <div class="mb-6">
+            <a
+                href="{{ route('admin.reports.export.section', request()->only(['section_id','course_id','start_date','end_date'])) }}"
+                class="inline-flex items-center bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg"
+            >
+                Export CSV
+            </a>
+        </div>
+
         <!-- Summary Cards -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div class="bg-white rounded-lg shadow p-4">

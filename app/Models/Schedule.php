@@ -11,7 +11,7 @@ class Schedule extends Model
 {
     use HasFactory, SoftDeletes;
 
-    public const DAY_PATTERNS = ['MWF', 'TTH', 'F', 'Sat', 'Sun'];
+    public const DAY_PATTERNS = ['MWF', 'TTH'];
 
     protected $fillable = [
         'course_id',
@@ -28,6 +28,48 @@ class Schedule extends Model
         'start_time' => 'datetime:H:i',
         'end_time' => 'datetime:H:i',
     ];
+
+    public static function normalizeDayPattern(?string $day): ?string
+    {
+        if ($day === null) {
+            return null;
+        }
+
+        $d = trim($day);
+        if ($d === '') {
+            return $d;
+        }
+
+        return match ($d) {
+            'MWF', 'Mon', 'Monday', 'Wed', 'Wednesday', 'Fri', 'Friday' => 'MWF',
+            'TTH', 'Tue', 'Tuesday', 'Thu', 'Thursday' => 'TTH',
+            default => $d,
+        };
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function dbValuesForDayPattern(string $pattern): array
+    {
+        $p = self::normalizeDayPattern($pattern) ?? $pattern;
+
+        return match ($p) {
+            'MWF' => ['MWF', 'Monday', 'Wednesday', 'Friday'],
+            'TTH' => ['TTH', 'Tuesday', 'Thursday'],
+            default => [$pattern],
+        };
+    }
+
+    public function getDayOfWeekAttribute($value)
+    {
+        return self::normalizeDayPattern(is_string($value) ? $value : null) ?? $value;
+    }
+
+    public function setDayOfWeekAttribute($value)
+    {
+        $this->attributes['day_of_week'] = self::normalizeDayPattern(is_string($value) ? $value : null) ?? $value;
+    }
 
     // Relationships
     public function course()
@@ -61,9 +103,6 @@ class Schedule extends Model
         return $query->orderByRaw("CASE day_of_week
             WHEN 'MWF' THEN 1
             WHEN 'TTH' THEN 2
-            WHEN 'F' THEN 3
-            WHEN 'Sat' THEN 4
-            WHEN 'Sun' THEN 5
             ELSE 99 END");
     }
 
@@ -79,7 +118,7 @@ class Schedule extends Model
 
     public function scopeByDay($query, $day)
     {
-        return $query->where('day_of_week', $day);
+        return $query->whereIn('day_of_week', self::dbValuesForDayPattern((string) $day));
     }
 
     /**
@@ -98,15 +137,6 @@ class Schedule extends Model
         if (in_array($d, [2, 4], true)) {
             $patterns[] = 'TTH';
         }
-        if ($d === 5) {
-            $patterns[] = 'F';
-        }
-        if ($d === 6) {
-            $patterns[] = 'Sat';
-        }
-        if ($d === 0) {
-            $patterns[] = 'Sun';
-        }
 
         return $patterns;
     }
@@ -115,12 +145,19 @@ class Schedule extends Model
     {
         $patterns = self::dayPatternsForDate($date);
 
-        return $patterns[0] ?? 'Sun';
+        return $patterns[0] ?? 'MWF';
     }
 
     public function scopeToday($query)
     {
-        return $query->whereIn('day_of_week', self::dayPatternsForDate(Carbon::now()));
+        $patterns = self::dayPatternsForDate(Carbon::now());
+        $dbValues = collect($patterns)
+            ->flatMap(fn ($p) => self::dbValuesForDayPattern($p))
+            ->unique()
+            ->values()
+            ->all();
+
+        return $query->whereIn('day_of_week', $dbValues);
     }
 
     public function scopeBySection($query, $sectionId)

@@ -67,11 +67,15 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/', [App\Http\Controllers\Admin\ReportController::class, 'index'])->name('index');
             Route::get('/daily-print', [App\Http\Controllers\Admin\ReportController::class, 'dailyPrint'])->name('daily-print');
+            Route::get('/daily-export', [App\Http\Controllers\Admin\ReportController::class, 'exportDailyCSV'])->name('export.daily');
             Route::get('/student', [App\Http\Controllers\Admin\ReportController::class, 'studentReport'])->name('student');
             Route::get('/section', [App\Http\Controllers\Admin\ReportController::class, 'sectionReport'])->name('section');
             Route::get('/faculty', [App\Http\Controllers\Admin\ReportController::class, 'facultyReport'])->name('faculty');
             Route::get('/trends', [App\Http\Controllers\Admin\ReportController::class, 'trendsReport'])->name('trends');
             Route::post('/export/student', [App\Http\Controllers\Admin\ReportController::class, 'exportStudentCSV'])->name('export.student');
+            Route::get('/export/section', [App\Http\Controllers\Admin\ReportController::class, 'exportSectionCSV'])->name('export.section');
+            Route::get('/export/faculty', [App\Http\Controllers\Admin\ReportController::class, 'exportFacultyCSV'])->name('export.faculty');
+            Route::get('/export/trends', [App\Http\Controllers\Admin\ReportController::class, 'exportTrendsCSV'])->name('export.trends');
         });
 
         // Security / Audit
@@ -95,7 +99,9 @@ Route::middleware(['auth', 'active'])->group(function () {
 
         // Reports
         Route::get('/reports', [App\Http\Controllers\Faculty\ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/export', [App\Http\Controllers\Faculty\ReportController::class, 'exportMyReportCSV'])->name('reports.export');
         Route::get('/reports/class', [App\Http\Controllers\Faculty\ReportController::class, 'classReport'])->name('reports.class');
+        Route::get('/reports/class/export', [App\Http\Controllers\Faculty\ReportController::class, 'exportClassReportCSV'])->name('reports.class.export');
 
         Route::resource('enrollments', App\Http\Controllers\Faculty\EnrollmentController::class)->except(['show']);
     });

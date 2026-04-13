@@ -63,7 +63,7 @@ class ScheduleSeeder extends Seeder
                 'course_id' => $network->id,
                 'section_id' => $bsit3a->id,
                 'faculty_id' => $faculty2->id,
-                'day_of_week' => 'F',
+                'day_of_week' => 'MWF',
                 'start_time' => '08:00:00',
                 'end_time' => '11:00:00',
                 'room' => 'IT-LAB-302',

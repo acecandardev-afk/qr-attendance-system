@@ -10,6 +10,8 @@ class Section extends Model
 {
     use HasFactory, SoftDeletes;
 
+    public const SEMESTERS = ['1st Sem', '2nd Sem'];
+
     protected $fillable = [
         'name',
         'department_id',

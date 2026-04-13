@@ -75,9 +75,6 @@
                                 @switch($pat)
                                     @case('MWF') Mon / Wed / Fri @break
                                     @case('TTH') Tue / Thu @break
-                                    @case('F') Friday only @break
-                                    @case('Sat') Saturday @break
-                                    @case('Sun') Sunday @break
                                     @default {{ $pat }}
                                 @endswitch
                             </option>

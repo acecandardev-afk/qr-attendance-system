@@ -10,6 +10,7 @@ use App\Models\Section;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class EnrollmentController extends Controller
 {
@@ -135,7 +136,7 @@ class EnrollmentController extends Controller
             'student_id' => 'required|exists:users,id',
             'section_id' => 'required|exists:sections,id',
             'school_year' => 'required|string|max:255',
-            'semester' => 'required|string|max:255',
+            'semester' => ['required', Rule::in(Enrollment::SEMESTERS)],
             'status' => 'required|in:enrolled,dropped,completed',
             'schedule_ids' => 'nullable|array',
             'schedule_ids.*' => 'integer|exists:schedules,id',
@@ -215,7 +216,7 @@ class EnrollmentController extends Controller
             'student_id' => 'required|exists:users,id',
             'section_id' => 'required|exists:sections,id',
             'school_year' => 'required|string|max:255',
-            'semester' => 'required|string|max:255',
+            'semester' => ['required', Rule::in(Enrollment::SEMESTERS)],
             'status' => 'required|in:enrolled,dropped,completed',
             'schedule_ids' => 'nullable|array',
             'schedule_ids.*' => 'integer|exists:schedules,id',

@@ -10,6 +10,8 @@ class Enrollment extends Model
 {
     use HasFactory, SoftDeletes;
 
+    public const SEMESTERS = ['1st Sem', '2nd Sem'];
+
     protected $fillable = [
         'student_id',
         'section_id',

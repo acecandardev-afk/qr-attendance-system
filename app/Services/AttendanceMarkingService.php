@@ -80,31 +80,40 @@ class AttendanceMarkingService
                 throw new \Exception('You are not enrolled in this class, so attendance cannot be recorded.');
             }
 
-            // Step 8: Check for duplicate attendance
-            $existingRecord = AttendanceRecord::where('attendance_session_id', $session->id)
-                ->where('student_id', $student->id)
-                ->first();
-
-            if ($existingRecord) {
-                $this->logAttempt($session->id, $student->id, $session->session_token, 'duplicate',
-                    $ipAddress, $userAgent, 'Attendance already marked');
-                throw new \Exception('Your attendance for this class is already recorded.');
-            }
-
-            // Step 9: Determine attendance status (present or late)
+            // Step 8: Determine attendance status (present or late)
             $attendanceStatus = $this->determineAttendanceStatus($session);
 
-            // Step 10: Create attendance record
-            $record = AttendanceRecord::create([
-                'attendance_session_id' => $session->id,
-                'student_id' => $student->id,
-                'status' => $attendanceStatus,
-                'marked_at' => Carbon::now(),
-                'ip_address' => $ipAddress,
-                'network_identifier' => null,
-            ]);
+            // Step 9: Create attendance record if it doesn't exist.
+            // If the student scans multiple times for the same session, keep only one record.
+            $record = AttendanceRecord::firstOrCreate(
+                [
+                    'attendance_session_id' => $session->id,
+                    'student_id' => $student->id,
+                ],
+                [
+                    'status' => $attendanceStatus,
+                    'marked_at' => Carbon::now(),
+                    'ip_address' => $ipAddress,
+                    'network_identifier' => null,
+                ]
+            );
 
-            // Step 11: Log successful attempt
+            if (! $record->wasRecentlyCreated) {
+                $this->logAttempt($session->id, $student->id, $session->session_token, 'duplicate',
+                    $ipAddress, $userAgent, 'Attendance already marked');
+
+                DB::commit();
+
+                return [
+                    'success' => true,
+                    'status' => $record->status,
+                    'message' => 'Your attendance for this class is already recorded.',
+                    'record' => $record,
+                    'session' => $session,
+                ];
+            }
+
+            // Step 10: Log successful attempt
             $this->logAttempt($session->id, $student->id, $session->session_token, 'success',
                 $ipAddress, $userAgent, null);
 
@@ -241,15 +250,40 @@ class AttendanceMarkingService
      */
     public function getStudentSummary(User $student): array
     {
-        $records = $student->attendanceRecords()->with('attendanceSession.schedule.course')->get();
+        $records = $student->attendanceRecords()
+            ->with(['attendanceSession.schedule.course', 'attendanceSession.schedule.section'])
+            ->orderByDesc('marked_at')
+            ->get();
+
+        $uniqueRecords = $records
+            ->unique('attendance_session_id')
+            ->values()
+            ->filter(function ($record) {
+                $session = $record->attendanceSession;
+                if (!$session) {
+                    return false;
+                }
+
+                $schedule = $session->schedule;
+                if (!$schedule) {
+                    return false;
+                }
+
+                if (!$schedule->course || !$schedule->section) {
+                    return false;
+                }
+
+                return true;
+            })
+            ->values();
 
         return [
-            'total' => $records->count(),
-            'present' => $records->where('status', 'present')->count(),
-            'late' => $records->where('status', 'late')->count(),
-            'absent' => $records->where('status', 'absent')->count(),
-            'excused' => $records->where('status', 'excused')->count(),
-            'recent_records' => $records->sortByDesc('marked_at')->take(10),
+            'total' => $uniqueRecords->count(),
+            'present' => $uniqueRecords->where('status', 'present')->count(),
+            'late' => $uniqueRecords->where('status', 'late')->count(),
+            'absent' => $uniqueRecords->where('status', 'absent')->count(),
+            'excused' => $uniqueRecords->where('status', 'excused')->count(),
+            'recent_records' => $uniqueRecords->take(10),
         ];
     }
 }

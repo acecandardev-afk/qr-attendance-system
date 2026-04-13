@@ -10,11 +10,9 @@ return new class extends Migration
     protected function mapLegacyDayToPattern(string $day): string
     {
         return match ($day) {
-            'Monday', 'Wednesday' => 'MWF',
+            'Monday', 'Wednesday', 'Friday' => 'MWF',
             'Tuesday', 'Thursday' => 'TTH',
-            'Friday' => 'F',
-            'Saturday' => 'Sat',
-            'Sunday' => 'Sun',
+            'Saturday', 'Sunday' => 'MWF',
             default => $day,
         };
     }

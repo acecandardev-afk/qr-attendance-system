@@ -134,6 +134,7 @@ class ReportService
         $faculty = User::findOrFail($facultyId);
 
         $sessionsQuery = AttendanceSession::where('faculty_id', $facultyId)
+            ->whereHas('schedule')
             ->with(['schedule.course', 'schedule.section', 'attendanceRecords']);
 
         if ($startDate) {
@@ -144,12 +145,16 @@ class ReportService
             $sessionsQuery->whereDate('started_at', '<=', $endDate);
         }
 
-        $sessions = $sessionsQuery->get();
+        $sessions = $sessionsQuery->get()->filter(function ($session) {
+            return $session->schedule !== null && $session->schedule->course !== null;
+        })->values();
 
         // Group by course
-        $byCourse = $sessions->groupBy(function($session) {
-            return $session->schedule->course_id;
-        })->map(function($courseSessions) {
+        $byCourse = $sessions->groupBy(function ($session) {
+            return $session->schedule?->course_id;
+        })->filter(function ($courseSessions, $courseId) {
+            return ! is_null($courseId);
+        })->map(function ($courseSessions) {
             $totalRecords = $courseSessions->sum(function($session) {
                 return $session->attendanceRecords->count();
             });
@@ -192,6 +197,45 @@ class ReportService
 
         return [
             'date' => $date->format('Y-m-d'),
+            'total_sessions' => $sessions->count(),
+            'total_attendance_marked' => $records->count(),
+            'present' => $records->where('status', 'present')->count(),
+            'late' => $records->where('status', 'late')->count(),
+            'absent' => $records->where('status', 'absent')->count(),
+            'excused' => $records->where('status', 'excused')->count(),
+            'sessions' => $sessions,
+        ];
+    }
+
+    public function getAttendanceStatsRange(?string $startDate = null, ?string $endDate = null): array
+    {
+        $start = $startDate ? Carbon::parse($startDate)->startOfDay() : null;
+        $end = $endDate ? Carbon::parse($endDate)->endOfDay() : null;
+
+        $sessionsQuery = AttendanceSession::query()
+            ->with(['schedule.course', 'schedule.section', 'faculty', 'attendanceRecords']);
+
+        if ($start) {
+            $sessionsQuery->where('started_at', '>=', $start);
+        }
+        if ($end) {
+            $sessionsQuery->where('started_at', '<=', $end);
+        }
+
+        $sessions = $sessionsQuery->get();
+
+        $recordsQuery = AttendanceRecord::query();
+        if ($start) {
+            $recordsQuery->where('marked_at', '>=', $start);
+        }
+        if ($end) {
+            $recordsQuery->where('marked_at', '<=', $end);
+        }
+        $records = $recordsQuery->get();
+
+        return [
+            'start_date' => $start ? $start->format('Y-m-d') : null,
+            'end_date' => $end ? $end->format('Y-m-d') : null,
             'total_sessions' => $sessions->count(),
             'total_attendance_marked' => $records->count(),
             'present' => $records->where('status', 'present')->count(),

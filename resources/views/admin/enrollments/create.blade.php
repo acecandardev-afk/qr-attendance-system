@@ -84,7 +84,6 @@
                         <option value="">Select Semester</option>
                         <option value="1st Sem" {{ old('semester') == '1st Sem' ? 'selected' : '' }}>1st Semester</option>
                         <option value="2nd Sem" {{ old('semester') == '2nd Sem' ? 'selected' : '' }}>2nd Semester</option>
-                        <option value="Summer" {{ old('semester') == 'Summer' ? 'selected' : '' }}>Summer</option>
                     </select>
                     @error('semester')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>

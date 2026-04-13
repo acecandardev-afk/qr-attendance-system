@@ -37,9 +37,31 @@
             </div>
 
             <div class="flex items-end">
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors">
-                    Generate Report
-                </button>
+                <div class="w-full flex flex-col gap-2">
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors">
+                        Generate Report
+                    </button>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <a
+                            href="{{ route('faculty.reports.class', array_merge(request()->only(['section_id','course_id']), ['start_date' => now()->format('Y-m-d'), 'end_date' => now()->format('Y-m-d')])) }}"
+                            class="inline-flex items-center justify-center bg-white hover:bg-gray-50 text-gray-800 px-4 py-2 rounded-lg border border-gray-300 text-sm font-semibold"
+                        >
+                            Today
+                        </a>
+                        <a
+                            href="{{ route('faculty.reports.class', request()->only(['section_id','course_id'])) }}"
+                            class="inline-flex items-center justify-center bg-white hover:bg-gray-50 text-gray-800 px-4 py-2 rounded-lg border border-gray-300 text-sm font-semibold"
+                        >
+                            All time
+                        </a>
+                        <a
+                            href="{{ route('faculty.reports.class.export', request()->only(['section_id','course_id','start_date','end_date'])) }}"
+                            class="inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold"
+                        >
+                            Export CSV
+                        </a>
+                    </div>
+                </div>
             </div>
         </form>
     </div>

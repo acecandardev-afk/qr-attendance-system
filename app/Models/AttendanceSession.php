@@ -103,17 +103,23 @@ class AttendanceSession extends Model
 
     public function getAttendanceCountAttribute()
     {
-        return $this->attendanceRecords()->count();
+        return $this->attendanceRecords()->distinct('student_id')->count('student_id');
     }
 
     public function getPresentCountAttribute()
     {
-        return $this->attendanceRecords()->where('status', 'present')->count();
+        return $this->attendanceRecords()
+            ->where('status', 'present')
+            ->distinct('student_id')
+            ->count('student_id');
     }
 
     public function getLateCountAttribute()
     {
-        return $this->attendanceRecords()->where('status', 'late')->count();
+        return $this->attendanceRecords()
+            ->where('status', 'late')
+            ->distinct('student_id')
+            ->count('student_id');
     }
 
     // Static Methods

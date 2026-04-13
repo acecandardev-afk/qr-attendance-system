@@ -63,7 +63,6 @@
                     <select name="semester" required class="w-full px-4 py-2 border border-gray-300 rounded-lg @error('semester') border-red-500 @enderror">
                         <option value="1st Sem" {{ old('semester', $section->semester) == '1st Sem' ? 'selected' : '' }}>1st Semester</option>
                         <option value="2nd Sem" {{ old('semester', $section->semester) == '2nd Sem' ? 'selected' : '' }}>2nd Semester</option>
-                        <option value="Summer" {{ old('semester', $section->semester) == 'Summer' ? 'selected' : '' }}>Summer</option>
                     </select>
                     @error('semester')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
