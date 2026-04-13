@@ -82,7 +82,11 @@ class EnrollmentController extends Controller
             'student' => fn ($q) => $q->withTrashed(),
             'section' => fn ($q) => $q->withTrashed(),
             'schedules.course',
-        ])->whereIn('section_id', $sectionIds);
+        ])
+            ->whereIn('section_id', $sectionIds)
+            ->whereHas('schedules', function ($q) use ($faculty) {
+                $q->where('faculty_id', $faculty->id);
+            });
 
         if ($request->filled('section_id')) {
             if (in_array((int) $request->section_id, $sectionIds, true)) {
@@ -121,7 +125,7 @@ class EnrollmentController extends Controller
         }
 
         $sections = Section::active()->whereIn('id', $sectionIds)->orderBy('name')->get();
-        $students = $this->studentsSelectableByFaculty($faculty, $sectionIds);
+        $students = User::students()->active()->orderBy('last_name')->orderBy('first_name')->get();
         $schedulesBySection = $this->schedulesGroupedForFacultySections($faculty, $sections);
 
         return view('faculty.enrollments.create', compact('students', 'sections', 'schedulesBySection'));
@@ -146,9 +150,13 @@ class EnrollmentController extends Controller
             return back()->withInput()->with('error', 'You can only enroll students in sections where you teach.');
         }
 
-        $allowedStudentIds = $this->studentsSelectableByFaculty($faculty, $sectionIds)->pluck('id')->all();
-        if (! in_array((int) $validated['student_id'], $allowedStudentIds, true)) {
-            return back()->withInput()->with('error', 'You can only choose students from your department or who are already in your classes.');
+        $studentOk = User::query()
+            ->where('id', $validated['student_id'])
+            ->where('role', 'student')
+            ->where('status', 'active')
+            ->exists();
+        if (! $studentOk) {
+            return back()->withInput()->with('error', 'Please choose an active student account.');
         }
 
         $myScheduleIds = $this->validatedScheduleIdsForFacultySection(

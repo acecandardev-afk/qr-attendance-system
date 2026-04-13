@@ -19,6 +19,13 @@
             <div class="space-y-6">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Student *</label>
+                    <input
+                        type="search"
+                        id="faculty-student-search"
+                        placeholder="Search student name or ID…"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2"
+                        autocomplete="off"
+                    >
                     <select name="student_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg @error('student_id') border-red-500 @enderror">
                         <option value="">Select student</option>
                         @foreach($students as $student)
@@ -114,6 +121,10 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const studentSearch = document.getElementById('faculty-student-search');
+    const studentSelect = document.querySelector('select[name="student_id"]');
+    const originalOptions = studentSelect ? Array.from(studentSelect.options) : [];
+
     const sectionSelect = document.getElementById('faculty-enrollment-section-id');
     const optionsWrap = document.getElementById('faculty-enrollment-schedule-options');
     const emptySelected = document.getElementById('faculty-enrollment-empty-selected');
@@ -167,6 +178,26 @@ document.addEventListener('DOMContentLoaded', function () {
         sectionSelect.addEventListener('change', function () {
             selectedOnLoad.clear();
             renderSchedules();
+        });
+    }
+
+    if (studentSearch && studentSelect) {
+        studentSearch.addEventListener('input', function () {
+            const term = (studentSearch.value || '').trim().toLowerCase();
+            const keep = originalOptions.filter(function (opt) {
+                if (!opt.value) return true;
+                return (opt.text || '').toLowerCase().includes(term);
+            });
+
+            const selected = studentSelect.value;
+            studentSelect.innerHTML = '';
+            keep.forEach(function (opt) {
+                studentSelect.appendChild(opt.cloneNode(true));
+            });
+
+            if (selected) {
+                studentSelect.value = selected;
+            }
         });
     }
 

@@ -63,6 +63,11 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('enrollments/bulk-destroy', [App\Http\Controllers\Admin\EnrollmentController::class, 'bulkDestroy'])->name('enrollments.bulk-destroy');
         Route::resource('enrollments', App\Http\Controllers\Admin\EnrollmentController::class);
 
+        // Students
+        Route::get('students', [App\Http\Controllers\Admin\StudentController::class, 'index'])->name('students.index');
+        Route::get('students/create', [App\Http\Controllers\Admin\StudentController::class, 'create'])->name('students.create');
+        Route::post('students', [App\Http\Controllers\Admin\StudentController::class, 'store'])->name('students.store');
+
         // Reports
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/', [App\Http\Controllers\Admin\ReportController::class, 'index'])->name('index');

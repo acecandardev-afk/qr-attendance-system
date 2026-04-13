@@ -22,6 +22,10 @@ class User extends Authenticatable implements CanResetPasswordContract
         'first_name',
         'middle_name',
         'last_name',
+        'year_level',
+        'address',
+        'age',
+        'birthday',
         'department_id',
         'status',
         'email_verified_at',
@@ -35,6 +39,7 @@ class User extends Authenticatable implements CanResetPasswordContract
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'birthday' => 'date',
     ];
 
     // Relationships

@@ -9,9 +9,6 @@
             <h1 class="text-3xl font-bold text-gray-800">Manage Enrollments</h1>
             <p class="text-gray-600 mt-2">See who is enrolled in each section. Search updates automatically as you type.</p>
         </div>
-        <a href="{{ route('admin.enrollments.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold">
-            + Add enrollment
-        </a>
     </div>
 
     <!-- Filters -->
@@ -60,21 +57,13 @@
                     Reset
                 </a>
             </div>
-        </form>
     </div>
 
     <!-- Enrollments Table -->
-    @php($bulkFormId = 'admin-bulk-enrollments')
-    <div class="bg-white rounded-lg shadow overflow-hidden" x-data="window.adminBulkToolbar(@js($bulkFormId), 'enrollments')" x-init="syncCount()">
-        <form id="{{ $bulkFormId }}" method="POST" action="{{ route('admin.enrollments.bulk-destroy') }}">
-            @csrf
-            @include('partials.admin-bulk-toolbar', ['itemLabel' => 'enrollments', 'archive' => true])
+    <div class="bg-white rounded-lg shadow overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th scope="col" class="w-12 pl-4 pr-2 py-3">
-                        <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" aria-label="Select all on this page" @change="toggleAll($event.target.checked)">
-                    </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student ID</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Section</th>
@@ -82,15 +71,11 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">School Year</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Semester</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 @forelse($enrollments as $enrollment)
                     <tr>
-                        <td class="w-12 pl-4 pr-2 py-4 align-middle">
-                            <input type="checkbox" name="ids[]" value="{{ $enrollment->id }}" class="bulk-cb rounded border-gray-300 text-blue-600 focus:ring-blue-500" @change="syncCount()">
-                        </td>
                         <td class="px-6 py-4 text-sm text-gray-900">
                             @if($enrollment->student)
                                 {{ $enrollment->student->full_name }}
@@ -143,20 +128,10 @@
                                 {{ ucfirst($enrollment->status) }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <a href="{{ route('admin.enrollments.edit', $enrollment->id) }}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
-                            @include('partials.confirm-action', [
-                                'action' => route('admin.enrollments.destroy', $enrollment->id),
-                                'title' => 'Remove this enrollment?',
-                                'message' => 'The student will no longer be listed in this section.',
-                                'trigger' => 'Delete',
-                                'confirm' => 'Remove',
-                            ])
-                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="9" class="px-6 py-8 text-center text-gray-500">
+                        <td colspan="8" class="px-6 py-8 text-center text-gray-500">
                             No enrollments found
                         </td>
                     </tr>

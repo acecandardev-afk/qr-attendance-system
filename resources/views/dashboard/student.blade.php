@@ -5,8 +5,8 @@
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-800">Student Dashboard</h1>
-        <p class="text-gray-600 mt-2">Welcome back, {{ $user->full_name }}</p>
+        <h1 class="text-3xl font-bold text-gray-800">Welcome, {{ $user->full_name_without_middle }}</h1>
+        <p class="text-gray-600 mt-2">Student Dashboard</p>
         <p class="text-sm text-gray-500">Student ID: {{ $user->user_id }}</p>
     </div>
 
