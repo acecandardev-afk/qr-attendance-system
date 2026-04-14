@@ -141,10 +141,10 @@
                     <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
                         <div>
                             <p class="font-semibold text-gray-800">
-                                {{ $session->schedule->course->name }}
+                                {{ $session->schedule?->course?->name ?? 'Subject removed' }}
                             </p>
                             <p class="text-sm text-gray-600">
-                                {{ $session->schedule->section->name }}
+                                {{ $session->schedule?->section?->name ?? 'Section removed' }}
                                 • {{ $session->started_at->format('M j, Y - g:i A') }}
                             </p>
                         </div>

@@ -34,16 +34,23 @@ class AttendanceSessionController extends Controller
         $todaySchedules = Schedule::byFaculty($faculty->id)
             ->today()
             ->active()
-            ->with(['course', 'section', 'attendanceSessions' => function ($query) {
+            ->with([
+                'course' => fn ($q) => $q->withTrashed(),
+                'section' => fn ($q) => $q->withTrashed(),
+                'attendanceSessions' => function ($query) {
                 $query->where('started_at', '>=', Carbon::today())
                     ->orderBy('started_at', 'desc');
-            }])
+                },
+            ])
             ->get();
 
         // Get all schedules for the faculty
         $allSchedules = Schedule::byFaculty($faculty->id)
             ->active()
-            ->with('course', 'section')
+            ->with([
+                'course' => fn ($q) => $q->withTrashed(),
+                'section' => fn ($q) => $q->withTrashed(),
+            ])
             ->orderByDayPattern()
             ->orderBy('start_time')
             ->get()
@@ -51,7 +58,10 @@ class AttendanceSessionController extends Controller
 
         $adHocTemplates = Schedule::byFaculty($faculty->id)
             ->active()
-            ->with('course', 'section')
+            ->with([
+                'course' => fn ($q) => $q->withTrashed(),
+                'section' => fn ($q) => $q->withTrashed(),
+            ])
             ->orderBy('course_id')
             ->get();
 
@@ -154,7 +164,11 @@ class AttendanceSessionController extends Controller
             abort(403, 'You cannot view this session.');
         }
 
-        $session->load(['schedule.course', 'schedule.section', 'attendanceRecords.student']);
+        $session->load([
+            'schedule.course' => fn ($q) => $q->withTrashed(),
+            'schedule.section' => fn ($q) => $q->withTrashed(),
+            'attendanceRecords.student' => fn ($q) => $q->withTrashed(),
+        ]);
 
         // Students enrolled for this schedule (or whole section if their enrollment has no schedule picks)
         $students = collect();

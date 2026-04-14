@@ -135,7 +135,11 @@ class ReportService
 
         $sessionsQuery = AttendanceSession::where('faculty_id', $facultyId)
             ->whereHas('schedule')
-            ->with(['schedule.course', 'schedule.section', 'attendanceRecords']);
+            ->with([
+                'schedule.course' => fn ($q) => $q->withTrashed(),
+                'schedule.section' => fn ($q) => $q->withTrashed(),
+                'attendanceRecords',
+            ]);
 
         if ($startDate) {
             $sessionsQuery->whereDate('started_at', '>=', $startDate);
@@ -190,7 +194,12 @@ class ReportService
         $date = $date ? Carbon::parse($date) : Carbon::today();
 
         $sessions = AttendanceSession::whereDate('started_at', $date)
-            ->with(['schedule.course', 'schedule.section', 'faculty', 'attendanceRecords'])
+            ->with([
+                'schedule.course' => fn ($q) => $q->withTrashed(),
+                'schedule.section' => fn ($q) => $q->withTrashed(),
+                'faculty' => fn ($q) => $q->withTrashed(),
+                'attendanceRecords',
+            ])
             ->get();
 
         $records = AttendanceRecord::whereDate('marked_at', $date)->get();
@@ -213,7 +222,12 @@ class ReportService
         $end = $endDate ? Carbon::parse($endDate)->endOfDay() : null;
 
         $sessionsQuery = AttendanceSession::query()
-            ->with(['schedule.course', 'schedule.section', 'faculty', 'attendanceRecords']);
+            ->with([
+                'schedule.course' => fn ($q) => $q->withTrashed(),
+                'schedule.section' => fn ($q) => $q->withTrashed(),
+                'faculty' => fn ($q) => $q->withTrashed(),
+                'attendanceRecords',
+            ]);
 
         if ($start) {
             $sessionsQuery->where('started_at', '>=', $start);
@@ -295,7 +309,10 @@ class ReportService
     {
         $student = User::findOrFail($studentId);
         $records = AttendanceRecord::where('student_id', $studentId)
-            ->with(['attendanceSession.schedule.course', 'attendanceSession.schedule.section'])
+            ->with([
+                'attendanceSession.schedule.course' => fn ($q) => $q->withTrashed(),
+                'attendanceSession.schedule.section' => fn ($q) => $q->withTrashed(),
+            ])
             ->orderBy('marked_at', 'desc')
             ->get();
 
@@ -319,11 +336,13 @@ class ReportService
 
         // Data
         foreach ($records as $record) {
+            $courseName = $record->attendanceSession?->schedule?->course?->name ?? '';
+            $sectionName = $record->attendanceSession?->schedule?->section?->name ?? '';
             fputcsv($file, [
                 $record->marked_at->format('Y-m-d'),
                 $record->marked_at->format('H:i:s'),
-                $record->attendanceSession->schedule->course->name,
-                $record->attendanceSession->schedule->section->name,
+                $courseName,
+                $sectionName,
                 ucfirst($record->status),
                 $record->ip_address,
             ]);

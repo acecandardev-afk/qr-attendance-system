@@ -67,12 +67,12 @@
                 <div class="space-y-3">
                     <div>
                         <p class="text-sm text-gray-600">Subject</p>
-                        <p class="font-semibold text-gray-800">{{ $session->schedule->course->name }}</p>
+                        <p class="font-semibold text-gray-800">{{ $session->schedule?->course?->name ?? 'Subject removed' }}</p>
                     </div>
                     
                     <div>
                         <p class="text-sm text-gray-600">Section</p>
-                        <p class="font-semibold text-gray-800">{{ $session->schedule->section->name }}</p>
+                        <p class="font-semibold text-gray-800">{{ $session->schedule?->section?->name ?? 'Section removed' }}</p>
                     </div>
                     
                     <div>
@@ -119,7 +119,7 @@
                 <div id="recent-attendance" class="space-y-2 max-h-64 overflow-y-auto">
                     @forelse($session->attendanceRecords->sortByDesc('marked_at')->take(10) as $record)
                         <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
-                            <span class="text-sm text-gray-800">{{ $record->student->full_name }}</span>
+                            <span class="text-sm text-gray-800">{{ $record->student?->full_name ?? 'Unknown student' }}</span>
                             <span class="text-xs px-2 py-1 rounded 
                                 @if($record->status === 'present') bg-green-100 text-green-800
                                 @elseif($record->status === 'late') bg-yellow-100 text-yellow-800

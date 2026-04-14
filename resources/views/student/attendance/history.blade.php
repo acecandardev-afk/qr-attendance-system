@@ -39,10 +39,10 @@
                             <span class="text-xs text-gray-500">{{ $record->marked_at->format('g:i A') }}</span>
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-900">
-                            {{ $record->attendanceSession->schedule->course->name }}
+                            {{ $record->attendanceSession?->schedule?->course?->name ?? 'Subject removed' }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ $record->attendanceSession->schedule->section->name }}
+                            {{ $record->attendanceSession?->schedule?->section?->name ?? 'Section removed' }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full

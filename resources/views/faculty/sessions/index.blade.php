@@ -24,7 +24,7 @@
                     <option value="">Select class</option>
                     @foreach($adHocTemplates as $template)
                         <option value="{{ $template->id }}">
-                            {{ $template->course->name }} - {{ $template->section->name }}
+                            {{ $template->course?->name ?? 'Subject removed' }} - {{ $template->section?->name ?? 'Section removed' }}
                         </option>
                     @endforeach
                 </select>
@@ -63,8 +63,8 @@
                     <div class="border border-gray-200 rounded-lg p-4">
                         <div class="flex justify-between items-start">
                             <div class="flex-1">
-                                <h3 class="font-semibold text-gray-800 text-lg">{{ $schedule->course->name }}</h3>
-                                <p class="text-sm text-gray-600">{{ $schedule->section->name }}</p>
+                                <h3 class="font-semibold text-gray-800 text-lg">{{ $schedule->course?->name ?? 'Subject removed' }}</h3>
+                                <p class="text-sm text-gray-600">{{ $schedule->section?->name ?? 'Section removed' }}</p>
                                 <p class="text-sm text-gray-500 mt-1">
                                     <span class="font-medium">Time:</span> {{ $schedule->time_range }}
                                 </p>
@@ -124,8 +124,8 @@
                             <div class="space-y-2">
                                 @foreach($allSchedules[$day] as $schedule)
                                     <div class="border-l-4 border-blue-500 pl-4 py-2">
-                                        <p class="font-medium text-gray-800">{{ $schedule->course->name }}</p>
-                                        <p class="text-sm text-gray-600">{{ $schedule->section->name }} • {{ $schedule->time_range }} • {{ $schedule->room }}</p>
+                                        <p class="font-medium text-gray-800">{{ $schedule->course?->name ?? 'Subject removed' }}</p>
+                                        <p class="text-sm text-gray-600">{{ $schedule->section?->name ?? 'Section removed' }} • {{ $schedule->time_range }} • {{ $schedule->room }}</p>
                                     </div>
                                 @endforeach
                             </div>

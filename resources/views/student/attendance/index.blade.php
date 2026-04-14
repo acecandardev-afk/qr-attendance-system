@@ -71,8 +71,8 @@
                 @foreach($summary['recent_records'] as $record)
                     <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
                         <div>
-                            <p class="font-semibold text-gray-800">{{ $record->attendanceSession->schedule->course->name }}</p>
-                            <p class="text-sm text-gray-600">{{ $record->attendanceSession->schedule->section->name }}</p>
+                            <p class="font-semibold text-gray-800">{{ $record->attendanceSession?->schedule?->course?->name ?? 'Subject removed' }}</p>
+                            <p class="text-sm text-gray-600">{{ $record->attendanceSession?->schedule?->section?->name ?? 'Section removed' }}</p>
                             <p class="text-xs text-gray-500">{{ $record->marked_at->format('M j, Y - g:i A') }}</p>
                         </div>
                         <span class="px-3 py-1 rounded text-sm font-semibold
