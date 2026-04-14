@@ -8,8 +8,8 @@
         <a href="{{ route('faculty.enrollments.index') }}" class="text-blue-600 hover:text-blue-800 text-sm">
             ← Back to enrollments
         </a>
-        <h1 class="text-3xl font-bold text-gray-800 mt-2">Add enrollment</h1>
-        <p class="text-gray-600 mt-2 text-sm">Choose which of <span class="font-semibold">your</span> class schedules apply to this student. Other instructors can add their schedules later by editing the same enrollment.</p>
+        <h1 class="text-3xl font-bold text-gray-800">Add Student Enrollment</h1>
+        <p class="text-gray-600 mt-2 text-sm">Choose which of <span class="font-semibold">your</span> class schedules apply to this student.</p>
     </div>
 
     <div class="bg-white rounded-lg shadow p-6">
@@ -30,7 +30,7 @@
                         <option value="">Select student</option>
                         @foreach($students as $student)
                             <option value="{{ $student->id }}" {{ old('student_id') == $student->id ? 'selected' : '' }}>
-                                {{ $student->user_id }} — {{ $student->full_name }}
+                                {{ $student->user_id }} — {{ $student->full_name }}{{ ($student->faculty_enrollments_count ?? 0) > 0 ? ' (Already enrolled)' : '' }}
                             </option>
                         @endforeach
                     </select>
@@ -182,6 +182,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (studentSearch && studentSelect) {
+        studentSearch.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+            }
+        });
+
         studentSearch.addEventListener('input', function () {
             const term = (studentSearch.value || '').trim().toLowerCase();
             const keep = originalOptions.filter(function (opt) {
@@ -197,6 +203,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (selected) {
                 studentSelect.value = selected;
+            } else if (term) {
+                const firstMatch = Array.from(studentSelect.options).find(function (o) {
+                    return !!o.value;
+                });
+                if (firstMatch) {
+                    studentSelect.value = firstMatch.value;
+                }
             }
         });
     }

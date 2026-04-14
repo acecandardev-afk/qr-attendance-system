@@ -124,8 +124,17 @@ class EnrollmentController extends Controller
                 ->with('error', 'You have no class schedules yet. Ask an administrator to assign you to schedules first.');
         }
 
-        $sections = Section::active()->whereIn('id', $sectionIds)->orderBy('name')->get();
-        $students = User::students()->active()->orderBy('last_name')->orderBy('first_name')->get();
+        $sections = Section::active()->orderBy('name')->get();
+        $students = User::students()
+            ->active()
+            ->withCount([
+                'enrollments as faculty_enrollments_count' => function ($q) use ($sectionIds) {
+                    $q->whereIn('section_id', $sectionIds);
+                },
+            ])
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
         $schedulesBySection = $this->schedulesGroupedForFacultySections($faculty, $sections);
 
         return view('faculty.enrollments.create', compact('students', 'sections', 'schedulesBySection'));
@@ -142,13 +151,9 @@ class EnrollmentController extends Controller
             'school_year' => 'required|string|max:255',
             'semester' => ['required', Rule::in(Enrollment::SEMESTERS)],
             'status' => 'required|in:enrolled,dropped,completed',
-            'schedule_ids' => 'nullable|array',
+            'schedule_ids' => 'required|array|min:1',
             'schedule_ids.*' => 'integer|exists:schedules,id',
         ]);
-
-        if (! in_array((int) $validated['section_id'], $sectionIds, true)) {
-            return back()->withInput()->with('error', 'You can only enroll students in sections where you teach.');
-        }
 
         $studentOk = User::query()
             ->where('id', $validated['student_id'])
@@ -168,6 +173,10 @@ class EnrollmentController extends Controller
             return back()->withInput()->with('error', 'Choose only your own class schedules for this section.');
         }
 
+        if ($myScheduleIds === []) {
+            return back()->withInput()->with('error', 'Please select at least one of your class schedules for the chosen section.');
+        }
+
         if ($this->enrollmentDuplicateExists(
             (int) $validated['student_id'],
             (int) $validated['section_id'],
@@ -183,9 +192,7 @@ class EnrollmentController extends Controller
 
         $enrollment = Enrollment::create($validated);
 
-        if ($myScheduleIds !== []) {
-            $enrollment->schedules()->sync($myScheduleIds);
-        }
+        $enrollment->schedules()->sync($myScheduleIds);
 
         return redirect()->route('faculty.enrollments.index')
             ->with('success', 'Enrollment saved. Each student can have different class schedules.');
