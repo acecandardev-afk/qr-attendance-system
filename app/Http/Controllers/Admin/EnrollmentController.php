@@ -24,7 +24,7 @@ class EnrollmentController extends Controller
             'student' => fn ($q) => $q->withTrashed(),
             'section' => fn ($q) => $q->withTrashed(),
             'schedules.course',
-        ]);
+        ])->whereNull('deleted_at');
 
         if ($request->filled('section_id')) {
             $query->where('section_id', $request->section_id);
