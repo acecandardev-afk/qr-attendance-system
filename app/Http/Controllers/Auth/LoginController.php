@@ -31,10 +31,17 @@ class LoginController extends Controller
         $remember = $request->boolean('remember');
 
         $login = trim($validated['login']);
+        $loginLower = Str::lower($login);
 
-        $user = User::where('user_id', $login)->first();
+        $user = User::query()
+            ->whereNull('deleted_at')
+            ->whereRaw('LOWER(TRIM(user_id)) = ?', [$loginLower])
+            ->first();
         if (! $user) {
-            $user = User::whereRaw('LOWER(email) = ?', [Str::lower($login)])->first();
+            $user = User::query()
+                ->whereNull('deleted_at')
+                ->whereRaw('LOWER(TRIM(email)) = ?', [$loginLower])
+                ->first();
         }
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {

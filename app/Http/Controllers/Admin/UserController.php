@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\RedirectsMissingAdminRecord;
 use App\Http\Controllers\Concerns\ValidatesBulkIds;
-use App\Http\Controllers\Controller;
 use App\Models\Department;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
@@ -78,6 +79,9 @@ class UserController extends Controller
             'status' => 'required|in:active,inactive',
         ]);
 
+        $validated['user_id'] = trim($validated['user_id']);
+        $validated['email'] = Str::lower(trim($validated['email']));
+
         $validated['password'] = Hash::make($validated['password']);
         $validated['email_verified_at'] = now();
 
@@ -117,6 +121,9 @@ class UserController extends Controller
             'department_id' => 'nullable|exists:departments,id',
             'status' => 'required|in:active,inactive',
         ]);
+
+        $validated['user_id'] = trim($validated['user_id']);
+        $validated['email'] = Str::lower(trim($validated['email']));
 
         if ($request->filled('password')) {
             $validated['password'] = Hash::make($validated['password']);

@@ -24,11 +24,11 @@
         </div>
 
         <!-- Right: login card -->
-        <div class="w-full max-w-md md:max-w-none md:w-96">
-            <div class="bg-white/95 backdrop-blur shadow-2xl rounded-2xl px-10 py-12 sm:px-8 sm:py-10 transform transition-all duration-300 hover:shadow-[0_20px_45px_rgba(15,23,42,0.35)] hover:-translate-y-1">
+        <div class="w-full max-w-none md:max-w-none md:w-96">
+            <div class="bg-white/95 backdrop-blur shadow-2xl rounded-2xl px-6 py-10 sm:px-8 sm:py-10 transform transition-all duration-300 hover:shadow-[0_20px_45px_rgba(15,23,42,0.35)] hover:-translate-y-1">
                 <div class="text-center mb-8">
-                    <div class="flex justify-center mb-4 px-5">
-                        <img src="{{ asset('norsu.webp') }}" alt="Logo" class="w-8 h-5 object-contain">
+                    <div class="flex justify-center mb-4">
+                        <img src="{{ asset('norsu.webp') }}" alt="Logo" class="w-24 h-24 sm:w-20 sm:h-20 object-contain">
                     </div>
                     <h2 class="text-2xl font-bold text-gray-900">Sign in</h2>
                     <p class="text-gray-500 mt-2 text-xs">Access the NORSU-Guihulngan smart attendance system</p>
