@@ -26,15 +26,21 @@
         <h2 class="text-xl font-bold text-gray-800 mb-4">My Sections</h2>
         
         @php
-            $enrollments = $user->enrollments()->enrolled()->with('section.department')->get();
+            $enrollments = $user->enrollments()
+                ->enrolled()
+                ->with([
+                    'section' => fn ($q) => $q->withTrashed(),
+                    'section.department' => fn ($q) => $q->withTrashed(),
+                ])
+                ->get();
         @endphp
 
         @if($enrollments->count() > 0)
             <div class="space-y-3">
                 @foreach($enrollments as $enrollment)
                     <div class="border border-gray-200 rounded-lg p-4">
-                        <h3 class="font-semibold text-gray-800">{{ $enrollment->section->name }}</h3>
-                        <p class="text-sm text-gray-600">{{ $enrollment->section->department->name }}</p>
+                        <h3 class="font-semibold text-gray-800">{{ $enrollment->section?->name ?? 'Section removed' }}</h3>
+                        <p class="text-sm text-gray-600">{{ $enrollment->section?->department?->name ?? 'Department removed' }}</p>
                         <p class="text-sm text-gray-500">{{ $enrollment->school_year }} - {{ $enrollment->semester }}</p>
                     </div>
                 @endforeach
