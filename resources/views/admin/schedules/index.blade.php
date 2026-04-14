@@ -91,15 +91,15 @@
                             <input type="checkbox" name="ids[]" value="{{ $schedule->id }}" class="bulk-cb rounded border-gray-300 text-blue-600 focus:ring-blue-500" @change="syncCount()">
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-900">
-                            {{ $schedule->course->code }}
+                            {{ $schedule->course?->code ?? '—' }}
                             <br>
-                            <span class="text-xs text-gray-500">{{ $schedule->course->name }}</span>
+                            <span class="text-xs text-gray-500">{{ $schedule->course?->name ?? 'Course removed' }}</span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ $schedule->section->name }}
+                            {{ $schedule->section?->name ?? 'Section removed' }}
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-900">
-                            {{ $schedule->faculty->full_name }}
+                            {{ $schedule->faculty?->full_name ?? 'Faculty removed' }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {{ $schedule->day_of_week }}

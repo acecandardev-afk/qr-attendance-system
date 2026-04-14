@@ -41,17 +41,29 @@ class AttendanceMarkingService
             }
 
             // Step 2: Get session
-            $session = AttendanceSession::with(['schedule.section', 'schedule.course'])
+            $session = AttendanceSession::with([
+                'schedule' => fn ($q) => $q->withTrashed(),
+                'schedule.section' => fn ($q) => $q->withTrashed(),
+                'schedule.course' => fn ($q) => $q->withTrashed(),
+            ])
                 ->find($qrData['session_id'] ?? null);
 
             if (! $session && ! empty($qrData['token'])) {
-                $session = AttendanceSession::with(['schedule.section', 'schedule.course'])
+                $session = AttendanceSession::with([
+                    'schedule' => fn ($q) => $q->withTrashed(),
+                    'schedule.section' => fn ($q) => $q->withTrashed(),
+                    'schedule.course' => fn ($q) => $q->withTrashed(),
+                ])
                     ->where('session_token', $qrData['token'])
                     ->first();
             }
 
             if (! $session) {
                 throw new ModelNotFoundException('Attendance session not found');
+            }
+
+            if (! $session->schedule) {
+                throw new \Exception('This attendance code is no longer available. Ask your instructor to show the current QR code.');
             }
 
             // Step 3: Validate session token matches
@@ -156,6 +168,7 @@ class AttendanceMarkingService
                 'This QR code has expired. Ask your instructor to refresh the attendance code.',
                 'You are not enrolled in this class, so attendance cannot be recorded.',
                 'Your attendance for this class is already recorded.',
+                'This attendance code is no longer available. Ask your instructor to show the current QR code.',
                 'Connect to the classroom network, then try again. If you need help, ask your instructor.',
                 'Too many scan attempts. Please wait a moment and try again.',
             ];

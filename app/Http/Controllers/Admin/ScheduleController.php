@@ -19,7 +19,11 @@ class ScheduleController extends Controller
 
     public function index(Request $request)
     {
-        $query = Schedule::with(['course', 'section', 'faculty']);
+        $query = Schedule::with([
+            'course' => fn ($q) => $q->withTrashed(),
+            'section' => fn ($q) => $q->withTrashed(),
+            'faculty' => fn ($q) => $q->withTrashed(),
+        ]);
 
         if ($request->filled('faculty_id')) {
             $query->where('faculty_id', $request->faculty_id);

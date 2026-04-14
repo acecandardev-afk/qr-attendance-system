@@ -55,11 +55,12 @@ class AttendanceController extends Controller
             );
 
             if ($result['success']) {
+                $session = $result['session'];
                 return response()->json([
                     'success' => true,
                     'message' => $result['message'],
-                    'course' => $result['session']->schedule->course->name,
-                    'section' => $result['session']->schedule->section->name,
+                    'course' => $session?->schedule?->course?->name ?? '—',
+                    'section' => $session?->schedule?->section?->name ?? '—',
                     'marked_at' => $result['record']->marked_at->format('g:i A'),
                 ]);
             }
@@ -70,6 +71,28 @@ class AttendanceController extends Controller
             ], 422);
         } catch (Throwable $e) {
             report($e);
+
+            $userSafeMessages = [
+                'We could not read that scan. Please try scanning again.',
+                'This is not a valid attendance code. Please scan the QR code your instructor shows in class.',
+                'This attendance code could not be verified. Ask your instructor for a fresh code.',
+                'This attendance code is too old. Ask your instructor to show the current QR code.',
+                'This attendance code does not match the active session. Scan the QR code your instructor is displaying now.',
+                'This check-in is already closed. If you are in class, ask your instructor to start a new attendance session.',
+                'This QR code has expired. Ask your instructor to refresh the attendance code.',
+                'You are not enrolled in this class, so attendance cannot be recorded.',
+                'Your attendance for this class is already recorded.',
+                'This attendance code is no longer available. Ask your instructor to show the current QR code.',
+                'Connect to the classroom network, then try again. If you need help, ask your instructor.',
+                'Too many scan attempts. Please wait a moment and try again.',
+            ];
+
+            if (in_array($e->getMessage(), $userSafeMessages, true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
 
             return response()->json([
                 'success' => false,
@@ -86,7 +109,11 @@ class AttendanceController extends Controller
         $student = Auth::user();
 
         $records = $student->attendanceRecords()
-            ->with(['attendanceSession.schedule.course', 'attendanceSession.schedule.section'])
+            ->with([
+                'attendanceSession.schedule' => fn ($q) => $q->withTrashed(),
+                'attendanceSession.schedule.course' => fn ($q) => $q->withTrashed(),
+                'attendanceSession.schedule.section' => fn ($q) => $q->withTrashed(),
+            ])
             ->orderBy('marked_at', 'desc')
             ->paginate(20);
 
