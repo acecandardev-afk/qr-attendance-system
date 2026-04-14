@@ -125,8 +125,9 @@ class EnrollmentController extends Controller
         }
 
         $sections = Section::active()->orderBy('name')->get();
-        $students = User::students()
-            ->active()
+        $students = User::query()
+            ->where('role', 'student')
+            ->where('status', 'active')
             ->whereNull('deleted_at')
             ->withCount([
                 'enrollments as faculty_enrollments_count' => function ($q) use ($sectionIds) {
