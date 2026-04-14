@@ -8,7 +8,7 @@
     <div class="pointer-events-none absolute -left-24 -top-24 w-72 h-72 bg-[#fbbf24]/30 blur-3xl rounded-full animate-pulse"></div>
     <div class="pointer-events-none absolute -right-24 -bottom-24 w-80 h-80 bg-[#0f3b8c]/35 blur-3xl rounded-full animate-[pulse_8s_ease-in-out_infinite]"></div>
 
-    <div class="relative max-w-4xl w-full px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center md:items-stretch gap-8">
+    <div class="relative max-w-5xl w-full px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center md:items-stretch gap-10">
         <!-- Left: tagline / landing content -->
         <div class="hidden md:flex flex-col justify-center text-white space-y-4">
             <p class="inline-flex items-center text-xs uppercase tracking-widest bg-white/10 px-3 py-1 rounded-full border border-white/20 backdrop-blur">
@@ -24,11 +24,11 @@
         </div>
 
         <!-- Right: login card -->
-        <div class="w-full md:w-[32rem]">
+        <div class="w-full max-w-md md:max-w-none md:w-[28rem]">
             <div class="bg-white/95 backdrop-blur shadow-2xl rounded-2xl px-6 py-8 sm:px-8 sm:py-10 transform transition-all duration-300 hover:shadow-[0_20px_45px_rgba(15,23,42,0.35)] hover:-translate-y-1">
                 <div class="text-center mb-8">
                     <div class="flex justify-center mb-4">
-                        <img src="{{ asset('norsu.webp') }}" alt="Logo" class="w-40 h-40 sm:w-56 sm:h-56 md:w-[300px] md:h-[300px] rounded-full bg-white object-contain">
+                        <img src="{{ asset('norsu.webp') }}" alt="Logo" class="w-20 h-20 rounded-full bg-white object-contain">
                     </div>
                     <h2 class="text-3xl font-bold text-gray-900">Sign in</h2>
                     <p class="text-gray-500 mt-2 text-sm">Access the NORSU-Guihulngan smart attendance system</p>
@@ -58,14 +58,28 @@
                     <!-- Password -->
                     <div>
                         <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                        <input 
-                            type="password" 
-                            name="password" 
-                            id="password" 
-                            required
-                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm @error('password') border-red-500 @enderror"
-                            placeholder="••••••••"
-                        >
+                        <div class="relative">
+                            <input 
+                                type="password" 
+                                name="password" 
+                                id="password" 
+                                required
+                                class="w-full pr-12 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm @error('password') border-red-500 @enderror"
+                                placeholder="••••••••"
+                            >
+                            <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 px-4 bg-transparent text-slate-500 hover:text-slate-700 focus:outline-none" aria-label="Toggle password visibility">
+                                <svg id="toggle-password-eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg>
+                                <svg id="toggle-password-eye-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 hidden">
+                                    <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c6.5 0 10 7 10 7a16.64 16.64 0 0 1-1.67 2.68" />
+                                    <path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3.5 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                                    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                                    <path d="m1 1 22 22" />
+                                </svg>
+                            </button>
+                        </div>
                         @error('password')
                             <p class="text-red-500 text-xs mt-1 text-center">{{ $message }}</p>
                         @enderror
@@ -93,3 +107,23 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const input = document.getElementById('password');
+    const btn = document.getElementById('toggle-password');
+    const eye = document.getElementById('toggle-password-eye');
+    const eyeOff = document.getElementById('toggle-password-eye-off');
+
+    if (!input || !btn || !eye || !eyeOff) return;
+
+    btn.addEventListener('click', function () {
+        const isHidden = input.type === 'password';
+        input.type = isHidden ? 'text' : 'password';
+        eye.classList.toggle('hidden', isHidden);
+        eyeOff.classList.toggle('hidden', !isHidden);
+    });
+});
+</script>
+@endpush
