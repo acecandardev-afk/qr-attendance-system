@@ -8,6 +8,7 @@ use App\Models\Enrollment;
 use App\Models\Schedule;
 use App\Models\Section;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -119,27 +120,46 @@ class EnrollmentController extends Controller
         $faculty = Auth::user();
         $sectionIds = $this->facultySectionIds($faculty);
 
+        $facultyScheduleIds = Schedule::query()
+            ->where('faculty_id', $faculty->id)
+            ->where('status', 'active')
+            ->pluck('id')
+            ->all();
+
+        $facultyScheduleCount = count($facultyScheduleIds);
+
         if ($sectionIds === []) {
             return redirect()->route('faculty.enrollments.index')
                 ->with('error', 'You have no class schedules yet. Ask an administrator to assign you to schedules first.');
         }
 
         $sections = Section::active()->orderBy('name')->get();
+
+        $facultyScheduleCountSubquery = DB::table('enrollments')
+            ->join('enrollment_schedule', 'enrollments.id', '=', 'enrollment_schedule.enrollment_id')
+            ->whereColumn('enrollments.student_id', 'users.id')
+            ->whereNull('enrollments.deleted_at')
+            ->where('enrollments.status', 'enrolled')
+            ->whereIn('enrollment_schedule.schedule_id', $facultyScheduleIds)
+            ->selectRaw('count(distinct enrollment_schedule.schedule_id)');
+
         $students = User::query()
             ->where('role', 'student')
             ->where('status', 'active')
             ->whereNull('deleted_at')
-            ->withCount([
-                'enrollments as faculty_enrollments_count' => function ($q) use ($sectionIds) {
-                    $q->whereIn('section_id', $sectionIds);
-                },
-            ])
+            ->select('users.*')
+            ->when($facultyScheduleCount > 0, function ($q) use ($facultyScheduleCountSubquery) {
+                $q->selectSub($facultyScheduleCountSubquery, 'faculty_schedule_enrolled_count');
+            })
+            ->when($facultyScheduleCount === 0, function ($q) {
+                $q->selectRaw('0 as faculty_schedule_enrolled_count');
+            })
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->get();
         $schedulesBySection = $this->schedulesGroupedForFacultySections($faculty, $sections);
 
-        return view('faculty.enrollments.create', compact('students', 'sections', 'schedulesBySection'));
+        return view('faculty.enrollments.create', compact('students', 'sections', 'schedulesBySection', 'facultyScheduleCount'));
     }
 
     public function store(Request $request)

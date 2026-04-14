@@ -8,7 +8,7 @@
     <div class="pointer-events-none absolute -left-24 -top-24 w-72 h-72 bg-[#fbbf24]/30 blur-3xl rounded-full animate-pulse"></div>
     <div class="pointer-events-none absolute -right-24 -bottom-24 w-80 h-80 bg-[#0f3b8c]/35 blur-3xl rounded-full animate-[pulse_8s_ease-in-out_infinite]"></div>
 
-    <div class="relative max-w-5xl w-full px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center md:items-stretch gap-10">
+    <div class="relative max-w-6xl w-full px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center md:items-stretch gap-12">
         <!-- Left: tagline / landing content -->
         <div class="hidden md:flex flex-col justify-center text-white space-y-4">
             <p class="inline-flex items-center text-xs uppercase tracking-widest bg-white/10 px-3 py-1 rounded-full border border-white/20 backdrop-blur">
@@ -24,14 +24,14 @@
         </div>
 
         <!-- Right: login card -->
-        <div class="w-full max-w-md md:max-w-none md:w-[28rem]">
-            <div class="bg-white/95 backdrop-blur shadow-2xl rounded-2xl px-6 py-8 sm:px-8 sm:py-10 transform transition-all duration-300 hover:shadow-[0_20px_45px_rgba(15,23,42,0.35)] hover:-translate-y-1">
+        <div class="w-full max-w-md md:max-w-none md:w-96">
+            <div class="bg-white/95 backdrop-blur shadow-2xl rounded-2xl px-10 py-12 sm:px-8 sm:py-10 transform transition-all duration-300 hover:shadow-[0_20px_45px_rgba(15,23,42,0.35)] hover:-translate-y-1">
                 <div class="text-center mb-8">
-                    <div class="flex justify-center mb-4">
-                        <img src="{{ asset('norsu.webp') }}" alt="Logo" class="w-20 h-20 rounded-full bg-white object-contain">
+                    <div class="flex justify-center mb-4 px-5">
+                        <img src="{{ asset('norsu.webp') }}" alt="Logo" class="w-8 h-5 object-contain">
                     </div>
-                    <h2 class="text-3xl font-bold text-gray-900">Sign in</h2>
-                    <p class="text-gray-500 mt-2 text-sm">Access the NORSU-Guihulngan smart attendance system</p>
+                    <h2 class="text-2xl font-bold text-gray-900">Sign in</h2>
+                    <p class="text-gray-500 mt-2 text-xs">Access the NORSU-Guihulngan smart attendance system</p>
                 </div>
 
                 <form method="POST" action="{{ route('login.post') }}" class="space-y-5">
@@ -67,7 +67,7 @@
                                 class="w-full pr-12 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm @error('password') border-red-500 @enderror"
                                 placeholder="••••••••"
                             >
-                            <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 px-4 bg-transparent text-slate-500 hover:text-slate-700 focus:outline-none" aria-label="Toggle password visibility">
+                            <button type="button" id="toggle-password" class="absolute inset-y-0 right-4 px-4 bg-transparent text-slate-500 hover:text-slate-700 focus:outline-none" aria-label="Toggle password visibility">
                                 <svg id="toggle-password-eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
                                     <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
                                     <circle cx="12" cy="12" r="3" />
@@ -95,9 +95,9 @@
                     </div>
 
                     <!-- Submit Button -->
-                    <button 
-                        type="submit" 
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg transition duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    <button
+                        type="submit"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
                         Sign In
                     </button>

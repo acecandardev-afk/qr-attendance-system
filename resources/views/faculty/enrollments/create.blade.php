@@ -30,7 +30,7 @@
                         <option value="">Select student</option>
                         @foreach($students as $student)
                             <option value="{{ $student->id }}" {{ old('student_id') == $student->id ? 'selected' : '' }}>
-                                {{ $student->user_id }} — {{ $student->full_name }}{{ ($student->faculty_enrollments_count ?? 0) > 0 ? ' (Already enrolled)' : '' }}
+                                {{ $student->user_id }} — {{ $student->full_name }}{{ (($student->faculty_schedule_enrolled_count ?? 0) >= ($facultyScheduleCount ?? 0) && ($facultyScheduleCount ?? 0) > 0) ? ' (Already enrolled)' : '' }}
                             </option>
                         @endforeach
                     </select>
