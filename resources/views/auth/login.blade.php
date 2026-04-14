@@ -27,6 +27,9 @@
         <div class="w-full md:w-96">
             <div class="bg-white/95 backdrop-blur shadow-2xl rounded-2xl px-6 py-8 sm:px-8 sm:py-10 transform transition-all duration-300 hover:shadow-[0_20px_45px_rgba(15,23,42,0.35)] hover:-translate-y-1">
                 <div class="text-center mb-8">
+                    <div class="flex justify-center mb-4">
+                        <img src="{{ asset('norsu.webp') }}" alt="Logo" class="w-16 h-16 rounded-full bg-white object-contain">
+                    </div>
                     <h2 class="text-3xl font-bold text-gray-900">Sign in</h2>
                     <p class="text-gray-500 mt-2 text-sm">Access the NORSU-Guihulngan smart attendance system</p>
                 </div>
