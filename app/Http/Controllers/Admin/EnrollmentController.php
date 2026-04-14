@@ -68,7 +68,13 @@ class EnrollmentController extends Controller
 
     public function create()
     {
-        $students = User::students()->active()->whereNull('deleted_at')->get();
+        $students = User::query()
+            ->where('role', 'student')
+            ->where('status', 'active')
+            ->whereNull('deleted_at')
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
         $sections = Section::active()->get();
         $schedulesBySection = $this->schedulesGroupedForSections($sections);
 
@@ -121,7 +127,13 @@ class EnrollmentController extends Controller
     {
         $enrollment = Enrollment::withTrashed()->with(['schedules.course'])->findOrFail($enrollment);
 
-        $students = User::students()->active()->whereNull('deleted_at')->get();
+        $students = User::query()
+            ->where('role', 'student')
+            ->where('status', 'active')
+            ->whereNull('deleted_at')
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
         $sections = Section::active()->get();
         $schedulesBySection = $this->schedulesGroupedForSections($sections);
 

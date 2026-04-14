@@ -329,7 +329,7 @@
                 <div class="sidebar-top">
                     <div class="flex items-center justify-between">
                         <a href="{{ route('dashboard') }}" class="brand-title text-xl font-extrabold text-slate-800 block truncate flex items-center gap-3">
-                            <img src="{{ asset('norsu.webp') }}" alt="Logo" class="w-9 h-9 rounded-full bg-white object-contain">
+                            <img src="{{ asset('norsu.webp') }}" alt="Logo" class="w-5 h-5 rounded-full bg-white object-contain">
                             <span class="truncate">{{ config('app.name') }}</span>
                         </a>
                         <button @click="sidebarOpen = false" class="md:hidden p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100" aria-label="Close menu">

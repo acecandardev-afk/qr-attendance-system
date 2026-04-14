@@ -28,6 +28,7 @@
                     <select name="student_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg @error('student_id') border-red-500 @enderror">
                         <option value="">Select Student</option>
                         @foreach($students as $student)
+                            @continue(($student->role ?? null) !== 'student' || ($student->status ?? null) !== 'active' || !empty($student->deleted_at))
                             <option value="{{ $student->id }}" {{ old('student_id', $enrollment->student_id) == $student->id ? 'selected' : '' }}>
                                 {{ $student->user_id }} - {{ $student->full_name }}
                             </option>
