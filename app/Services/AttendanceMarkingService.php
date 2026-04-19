@@ -33,18 +33,12 @@ class AttendanceMarkingService
             // Step 1: Verify QR code signature
             $qrData = $this->sessionService->verifyQrPayload($qrPayload);
 
-            // Step 1.1: Reject stale signed payloads (helps protect replay from delayed/offline queue sync)
-            $payloadTimestamp = isset($qrData['timestamp']) ? Carbon::createFromTimestamp((int) $qrData['timestamp']) : null;
-            $maxPayloadAge = (int) AttendanceConfig::get('qr_expiration_minutes', 10) + 5; // grace window
-            if (! $payloadTimestamp || $payloadTimestamp->lt(Carbon::now()->subMinutes($maxPayloadAge))) {
-                throw new \Exception('This attendance code is too old. Ask your instructor to show the current QR code.');
-            }
-
             // Step 2: Get session
             $session = AttendanceSession::with([
                 'schedule' => fn ($q) => $q->withTrashed(),
                 'schedule.section' => fn ($q) => $q->withTrashed(),
                 'schedule.course' => fn ($q) => $q->withTrashed(),
+                'schedule.faculty',
             ])
                 ->find($qrData['session_id'] ?? null);
 
@@ -53,6 +47,7 @@ class AttendanceMarkingService
                     'schedule' => fn ($q) => $q->withTrashed(),
                     'schedule.section' => fn ($q) => $q->withTrashed(),
                     'schedule.course' => fn ($q) => $q->withTrashed(),
+                    'schedule.faculty',
                 ])
                     ->where('session_token', $qrData['token'])
                     ->first();
@@ -64,6 +59,18 @@ class AttendanceMarkingService
 
             if (! $session->schedule) {
                 throw new \Exception('This attendance code is no longer available. Ask your instructor to show the current QR code.');
+            }
+
+            // Step 2.1: Reject stale signed payloads (replay / old scans)
+            $payloadTimestamp = isset($qrData['timestamp']) ? Carbon::createFromTimestamp((int) $qrData['timestamp']) : null;
+            $session->loadMissing('schedule.faculty');
+            $qrMinutes = $session->schedule?->faculty?->check_in_code_valid_minutes;
+            if ($qrMinutes === null || $qrMinutes < 1) {
+                $qrMinutes = (int) AttendanceConfig::get('qr_expiration_minutes', 10);
+            }
+            $maxPayloadAge = $qrMinutes + 5;
+            if (! $payloadTimestamp || $payloadTimestamp->lt(Carbon::now()->subMinutes($maxPayloadAge))) {
+                throw new \Exception('This attendance code is too old. Ask your instructor to show the current QR code.');
             }
 
             // Step 3: Validate session token matches
@@ -209,7 +216,13 @@ class AttendanceMarkingService
     protected function determineAttendanceStatus(AttendanceSession $session): string
     {
         $schedule = $session->schedule;
-        $lateThreshold = (int) AttendanceConfig::get('late_threshold_minutes', 15);
+        $schedule?->loadMissing('faculty');
+        $lateThreshold = $schedule?->faculty?->late_after_minutes;
+        if ($lateThreshold === null || $lateThreshold < 0) {
+            $lateThreshold = (int) AttendanceConfig::get('late_threshold_minutes', 15);
+        } else {
+            $lateThreshold = (int) $lateThreshold;
+        }
 
         // Get schedule start time for today
         $scheduleStart = Carbon::parse($schedule->start_time);
@@ -283,16 +296,16 @@ class AttendanceMarkingService
             ->values()
             ->filter(function ($record) {
                 $session = $record->attendanceSession;
-                if (!$session) {
+                if (! $session) {
                     return false;
                 }
 
                 $schedule = $session->schedule;
-                if (!$schedule) {
+                if (! $schedule) {
                     return false;
                 }
 
-                if (!$schedule->course || !$schedule->section) {
+                if (! $schedule->course || ! $schedule->section) {
                     return false;
                 }
 

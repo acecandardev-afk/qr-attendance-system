@@ -5,7 +5,7 @@
 @section('content')
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="mb-8">
-        <a href="{{ route('student.attendance.index') }}" class="text-blue-600 hover:text-blue-800 text-sm">
+        <a href="{{ route('student.attendance.index', [], false) }}" class="text-blue-600 hover:text-blue-800 text-sm">
             ← Back to Scanner
         </a>
         <h1 class="text-3xl font-bold text-gray-800 mt-2">Attendance History</h1>

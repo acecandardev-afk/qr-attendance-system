@@ -172,6 +172,7 @@ return [
     |
     */
 
+    // Overridden per request by ConfigureSessionSecureCookie when SESSION_SECURE_COOKIE is unset.
     'secure' => env('SESSION_SECURE_COOKIE'),
 
     /*

@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\RedirectsMissingAdminRecord;
 use App\Http\Controllers\Concerns\ValidatesBulkIds;
+use App\Http\Controllers\Controller;
 use App\Models\Department;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -152,13 +152,13 @@ class UserController extends Controller
     {
         // Prevent deleting own account
         if ($user->id === auth()->id()) {
-            return back()->with('error', 'You cannot delete the account you are currently signed in with.');
+            return back()->with('error', 'You cannot archive the account you are currently signed in with.');
         }
 
         $user->delete();
 
         return redirect()->route('admin.users.index')
-            ->with('success', 'User deleted successfully!');
+            ->with('success', 'User archived successfully.');
     }
 
     public function bulkDestroy(Request $request)
@@ -172,6 +172,6 @@ class UserController extends Controller
 
         User::whereIn('id', $ids)->get()->each->delete();
 
-        return back()->with('success', count($ids).' user(s) removed.');
+        return back()->with('success', count($ids).' user(s) archived.');
     }
 }

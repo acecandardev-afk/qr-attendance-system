@@ -37,6 +37,16 @@
                     @enderror
                 </div>
 
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Number of listed courses</label>
+                    <input type="number" name="courses_number" value="{{ old('courses_number', $department->courses_number) }}" min="0" max="999999" step="1"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg placeholder:text-gray-400/40 @error('courses_number') border-red-500 @enderror"
+                           placeholder="example: 4">
+                    @error('courses_number')
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
                 <!-- Description -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>

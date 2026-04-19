@@ -2,6 +2,7 @@
 @props([
     'itemLabel' => 'items',
     'archive' => false,
+    'requirePassword' => false,
 ])
 
 @include('partials.admin-bulk-delete-scripts')
@@ -27,8 +28,8 @@
         x-transition.opacity
         class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/50 p-4"
         style="display: none;"
-        @click.self="confirmOpen = false"
-        @keydown.escape.window="confirmOpen = false"
+        @click.self="closeConfirm()"
+        @keydown.escape.window="closeConfirm()"
     >
         <div
             class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 border border-slate-200"
@@ -44,10 +45,27 @@
                     You are about to remove <strong x-text="selectedCount"></strong> record(s). This may affect related data (sessions, enrollments, etc.) depending on what you delete.
                 @endif
             </p>
+            @if($requirePassword)
+                <div class="mt-4" x-show="requirePassword">
+                    <label for="bulk-archive-pw" class="block text-sm font-medium text-slate-700 mb-1">Your password</label>
+                    <input
+                        id="bulk-archive-pw"
+                        type="password"
+                        name="bulk_current_password_ui"
+                        x-model="pw"
+                        @input.debounce.400ms="verify()"
+                        autocomplete="current-password"
+                        class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter your password to confirm"
+                    >
+                    <p class="mt-1 text-xs text-slate-500" x-show="pw && !archiveOk && !verifying" x-cloak>The confirm button unlocks when your password is correct.</p>
+                    <p class="mt-1 text-xs text-slate-500" x-show="verifying" x-cloak>Checking…</p>
+                </div>
+            @endif
             <div class="mt-6 flex flex-wrap justify-end gap-3">
                 <button
                     type="button"
-                    @click="confirmOpen = false"
+                    @click="closeConfirm()"
                     class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-medium hover:bg-slate-50"
                 >
                     Cancel
@@ -55,7 +73,11 @@
                 <button
                     type="button"
                     @click="confirmSubmit()"
-                    class="px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700"
+                    class="inline-flex items-center justify-center min-w-[6.5rem] px-4 py-2.5 rounded-lg font-semibold text-sm transition"
+                    :class="requirePassword && (!archiveOk)
+                        ? 'bg-slate-200 text-slate-500 cursor-not-allowed opacity-90'
+                        : 'bg-red-600 text-white hover:bg-red-700'"
+                    :aria-disabled="requirePassword && !archiveOk"
                 >
                     {{ $archive ? 'Yes, archive' : 'Yes, delete' }}
                 </button>

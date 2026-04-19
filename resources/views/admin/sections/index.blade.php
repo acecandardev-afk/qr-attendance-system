@@ -14,12 +14,6 @@
         </a>
     </div>
 
-    @if(session('success'))
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
-            {{ session('success') }}
-        </div>
-    @endif
-
     <!-- Filters -->
     <div class="bg-white rounded-lg shadow p-6 mb-6">
         <form method="GET" action="{{ route('admin.sections.index') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -101,13 +95,13 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <a href="{{ route('admin.sections.edit', $section->id) }}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
-                            @include('partials.confirm-action', [
+                            {!! view('partials.confirm-action', [
                                 'action' => route('admin.sections.destroy', $section->id),
                                 'title' => 'Delete this section?',
                                 'message' => 'This may affect schedules and enrollments linked to this section.',
                                 'trigger' => 'Delete',
                                 'confirm' => 'Delete',
-                            ])
+                            ])->render() !!}
                         </td>
                     </tr>
                 @empty

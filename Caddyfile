@@ -1,0 +1,47 @@
+# Local HTTPS for phones on the same WiFi (camera / QR scan needs HTTPS or localhost).
+# Works on a fully offline LAN — no internet required after Caddy and this app are installed.
+#
+# 1. Install Caddy (Windows):  winget install -e --id CaddyServer.Caddy
+#    Then close and reopen the terminal (PATH update). Or run: scripts/run-caddy.ps1
+#    Other OS: https://caddyserver.com/docs/install
+# 2. Start Laravel (scripts/start-dev-stack.ps1 uses --host=0.0.0.0 for LAN HTTP; Caddy still proxies 127.0.0.1:8000).
+#      php artisan serve --host=0.0.0.0 --port=8000
+# 3. From this project folder run:
+#      caddy run --config Caddyfile
+# 4. On your PC, find your LAN IP (e.g. ipconfig → IPv4).
+# 5. Run scripts/run-caddy.ps1 (or: caddy run --config Caddyfile).
+#    The server listens on all interfaces (:9443). Open https://YOUR_LAN_IP:9443 from
+#    phones or this PC (https://127.0.0.1:9443 also works locally). Accept the cert
+#    warning or run: caddy trust (Admin).
+# 6. Set .env APP_URL=https://YOUR_LAN_IP:9443 and SESSION_SECURE_COOKIE=true
+#    then php artisan config:clear
+#
+# If phones can open :8000 but not :9443: allow TCP (and optionally UDP) 9443 in
+# Windows Firewall — see README. HTTP/3 is disabled below so TCP 9443 is enough.
+#
+# Windows curl.exe (Schannel) often fails for https://IP:9443 even when TLS is fine.
+# Prefer Edge/Chrome to https://YOUR_LAN_IP:9443, or Git Bash curl (OpenSSL), or:
+#   openssl s_client -connect YOUR_LAN_IP:9443 -servername YOUR_LAN_IP
+# Trust Caddy's local CA on the PC: PowerShell as Admin → caddy trust
+
+{
+	servers {
+		protocols h1 h2
+	}
+}
+
+# Explicit HTTPS so this port always negotiates TLS (fixes some clients that mis-detect plain HTTP).
+https://:9443 {
+	tls internal {
+		protocols tls1.2 tls1.3
+	}
+	# PHP's built-in server (artisan serve) often returns 400 if Host is the phone's
+	# address (e.g. 192.168.x.x:9443). Send Host the dev server expects, and pass the
+	# real hostname to Laravel via X-Forwarded-* (TrustProxies in bootstrap/app.php).
+	reverse_proxy 127.0.0.1:8000 {
+		header_up Host 127.0.0.1:8000
+		header_up X-Forwarded-Host {http.request.host}
+		header_up X-Forwarded-Proto {http.request.scheme}
+		header_up X-Forwarded-Port {http.request.port}
+	}
+}

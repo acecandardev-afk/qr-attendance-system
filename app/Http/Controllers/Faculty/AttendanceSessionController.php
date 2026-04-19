@@ -3,11 +3,10 @@
 namespace App\Http\Controllers\Faculty;
 
 use App\Http\Controllers\Controller;
-use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
+use App\Models\Department;
 use App\Models\Enrollment;
 use App\Models\Schedule;
-use App\Models\User;
 use App\Services\AttendanceSessionService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -38,14 +37,35 @@ class AttendanceSessionController extends Controller
                 'course' => fn ($q) => $q->withTrashed(),
                 'section' => fn ($q) => $q->withTrashed(),
                 'attendanceSessions' => function ($query) {
-                $query->where('started_at', '>=', Carbon::today())
-                    ->orderBy('started_at', 'desc');
+                    $query->where('started_at', '>=', Carbon::today())
+                        ->orderBy('started_at', 'desc');
                 },
             ])
             ->get();
 
-        // Get all schedules for the faculty
-        $allSchedules = Schedule::byFaculty($faculty->id)
+        $sectionIds = Schedule::query()
+            ->where('faculty_id', $faculty->id)
+            ->where('status', 'active')
+            ->distinct()
+            ->pluck('section_id')
+            ->filter()
+            ->all();
+
+        $pendingEnrollmentRequests = collect();
+        if ($sectionIds !== []) {
+            $pendingEnrollmentRequests = Enrollment::with([
+                'student' => fn ($q) => $q->withTrashed(),
+                'section' => fn ($q) => $q->withTrashed(),
+                'schedules.course',
+            ])
+                ->pending()
+                ->whereIn('section_id', $sectionIds)
+                ->whereHas('schedules', fn ($q) => $q->where('faculty_id', $faculty->id))
+                ->latest()
+                ->get();
+        }
+
+        $flatSchedules = Schedule::byFaculty($faculty->id)
             ->active()
             ->with([
                 'course' => fn ($q) => $q->withTrashed(),
@@ -53,19 +73,90 @@ class AttendanceSessionController extends Controller
             ])
             ->orderByDayPattern()
             ->orderBy('start_time')
-            ->get()
-            ->groupBy('day_of_week');
+            ->get();
 
-        $adHocTemplates = Schedule::byFaculty($faculty->id)
+        $subjectCreateDepartments = ! $faculty->department_id
+            ? Department::query()->orderBy('name')->get()
+            : collect();
+
+        $todaySchedulesPayload = $this->serializeTodaySchedulesPayload($todaySchedules);
+        $todayDateLabel = Carbon::now()->format('l, F j, Y');
+
+        return view('faculty.sessions.index', compact(
+            'todaySchedulesPayload',
+            'todayDateLabel',
+            'pendingEnrollmentRequests',
+            'flatSchedules',
+            'subjectCreateDepartments',
+        ));
+    }
+
+    /**
+     * JSON for the My Subjects page: today's classes in app timezone (default Asia/Manila).
+     */
+    public function todayData()
+    {
+        $faculty = Auth::user();
+
+        $todaySchedules = Schedule::byFaculty($faculty->id)
+            ->today()
             ->active()
             ->with([
                 'course' => fn ($q) => $q->withTrashed(),
                 'section' => fn ($q) => $q->withTrashed(),
+                'attendanceSessions' => function ($query) {
+                    $query->where('started_at', '>=', Carbon::today())
+                        ->orderBy('started_at', 'desc');
+                },
             ])
-            ->orderBy('course_id')
             ->get();
 
-        return view('faculty.sessions.index', compact('todaySchedules', 'allSchedules', 'adHocTemplates'));
+        $now = Carbon::now();
+
+        return response()
+            ->json([
+                'date_label' => $now->format('l, F j, Y'),
+                'time_display' => $now->format('g:i A'),
+                'timezone' => $now->timezoneName,
+                'schedules' => $this->serializeTodaySchedulesPayload($todaySchedules),
+            ])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache');
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Schedule>  $todaySchedules
+     * @return array<int, array<string, mixed>>
+     */
+    protected function serializeTodaySchedulesPayload($todaySchedules): array
+    {
+        return $todaySchedules->map(function (Schedule $schedule) {
+            $activeSession = $schedule->attendanceSessions
+                ->where('status', 'active')
+                ->where('expires_at', '>', now())
+                ->first();
+            $latestSession = $schedule->attendanceSessions->first();
+
+            $courseName = $schedule->course?->name ?? 'Subject removed';
+            $sectionName = $schedule->section?->name ?? 'Section removed';
+
+            return [
+                'id' => $schedule->id,
+                'course_name' => $courseName,
+                'section_name' => $sectionName,
+                'time_range' => $schedule->time_range,
+                'room' => $schedule->room ?? '',
+                'sub_label' => "{$courseName} — {$sectionName}",
+                'active_session_id' => $activeSession?->id,
+                'active_session_url' => $activeSession ? route('faculty.sessions.show', $activeSession->id) : null,
+                'edit_url' => route('faculty.subjects.edit', $schedule),
+                'destroy_url' => route('faculty.subjects.destroy', $schedule),
+                'latest_session' => $latestSession ? [
+                    'started_at' => $latestSession->started_at->format('g:i A'),
+                    'attendance_count' => $latestSession->attendance_count,
+                ] : null,
+            ];
+        })->values()->all();
     }
 
     /**
@@ -87,7 +178,7 @@ class AttendanceSessionController extends Controller
 
         // Verify schedule is for today (optional - with tolerance)
         if (! $schedule->isToday()) {
-            return back()->with('error', 'This class is not scheduled for today. Pick today’s schedule or start an emergency class.');
+            return back()->with('error', 'This class is not scheduled for today. Use today’s schedule to start attendance.');
         }
 
         try {
@@ -102,53 +193,6 @@ class AttendanceSessionController extends Controller
             }
 
             return back()->with('error', 'We could not start the attendance session. Please try again.');
-        }
-    }
-
-    /**
-     * Start an Emergency class attendance (without requiring today's predefined schedule slot).
-     */
-    public function storeAdHoc(Request $request)
-    {
-        $validated = $request->validate([
-            'template_schedule_id' => ['required', 'integer', 'exists:schedules,id'],
-            'duration_minutes' => ['required', 'integer', 'min:5', 'max:180'],
-            'room' => ['nullable', 'string', 'max:255'],
-        ]);
-
-        $faculty = Auth::user();
-        $template = Schedule::with('course', 'section')->findOrFail($validated['template_schedule_id']);
-
-        if ($template->faculty_id !== $faculty->id) {
-            abort(403, 'You cannot use this class template.');
-        }
-
-        try {
-            $start = now();
-            $end = now()->copy()->addMinutes((int) $validated['duration_minutes']);
-
-            $adHocSchedule = Schedule::create([
-                'course_id' => $template->course_id,
-                'section_id' => $template->section_id,
-                'faculty_id' => $faculty->id,
-                'day_of_week' => $template->day_of_week,
-                'start_time' => $start->format('H:i:s'),
-                'end_time' => $end->format('H:i:s'),
-                'room' => $validated['room'] ?? $template->room,
-                'status' => 'active',
-            ]);
-
-            $session = $this->sessionService->startSession($adHocSchedule, $faculty->id);
-
-            return redirect()->route('faculty.sessions.show', $session->id)
-                ->with('success', 'Emergency class attendance started. Students can scan the QR code now.');
-        } catch (\Throwable $e) {
-            report($e);
-            if ($e->getMessage() === 'FACULTY_SESSION_ALREADY_ACTIVE') {
-                return back()->with('error', 'A session is already open for this class. Close it first, or open the existing session from your list.');
-            }
-
-            return back()->with('error', 'We could not start the emergency class. Please try again.');
         }
     }
 
@@ -170,26 +214,10 @@ class AttendanceSessionController extends Controller
             'attendanceRecords.student' => fn ($q) => $q->withTrashed(),
         ]);
 
-        // Students enrolled for this schedule (or whole section if their enrollment has no schedule picks)
-        $students = collect();
-        if ($session->schedule->section) {
-            $studentIds = Enrollment::query()
-                ->eligibleForSchedule($session->schedule)
-                ->pluck('student_id')
-                ->unique()
-                ->values();
-
-            $students = User::query()
-                ->whereIn('id', $studentIds)
-                ->orderBy('last_name')
-                ->orderBy('first_name')
-                ->get();
-        }
-
-        // QR code: use stored file if present, otherwise generate inline so it always displays
+        // QR code: serve via app route so it works even when public/storage is not symlinked to storage/app/public (common on Windows).
         $qrCodeUrl = null;
         if ($session->qr_code_path && Storage::disk('public')->exists($session->qr_code_path)) {
-            $qrCodeUrl = asset('storage/'.$session->qr_code_path);
+            $qrCodeUrl = route('faculty.sessions.qr-svg', $session, false);
         }
         if (! $qrCodeUrl) {
             $qrCodeUrl = $this->sessionService->getQrCodeDataUrl($session);
@@ -198,7 +226,29 @@ class AttendanceSessionController extends Controller
         // Calculate remaining time
         $remainingSeconds = $session->remaining_time;
 
-        return view('faculty.sessions.show', compact('session', 'qrCodeUrl', 'remainingSeconds', 'students'));
+        return view('faculty.sessions.show', compact('session', 'qrCodeUrl', 'remainingSeconds'));
+    }
+
+    /**
+     * Serve the stored QR SVG from the public disk (bypasses broken or missing public/storage symlink).
+     */
+    public function qrSvg(AttendanceSession $session)
+    {
+        $faculty = Auth::user();
+
+        if ($session->faculty_id !== $faculty->id) {
+            abort(403, 'You cannot view this QR code.');
+        }
+
+        if (! $session->qr_code_path || ! Storage::disk('public')->exists($session->qr_code_path)) {
+            abort(404);
+        }
+
+        return Storage::disk('public')->response($session->qr_code_path, 'attendance-qr.svg', [
+            'Content-Type' => 'image/svg+xml',
+            'Content-Disposition' => 'inline; filename="attendance-qr.svg"',
+            'Cache-Control' => 'private, max-age=30',
+        ]);
     }
 
     /**
@@ -239,141 +289,11 @@ class AttendanceSessionController extends Controller
             'status' => $session->status,
             'remaining_time' => $session->remaining_time,
             'is_expired' => $session->isExpired(),
+            'enrolled_count' => $session->enrolled_count,
             'attendance_count' => $session->attendance_count,
             'present_count' => $session->present_count,
             'late_count' => $session->late_count,
+            'absent_count' => $session->absent_count,
         ]);
-    }
-
-    /**
-     * Manually update a student's attendance for a session.
-     * Allows faculty to mark a student present, late, excused, or absent (clear record).
-     */
-    public function updateManualAttendance(Request $request, AttendanceSession $session)
-    {
-        $faculty = Auth::user();
-
-        // Verify faculty owns this session
-        if ($session->faculty_id !== $faculty->id) {
-            abort(403, 'You cannot change attendance for this session.');
-        }
-
-        $validated = $request->validate([
-            'student_id' => ['required', 'integer', 'exists:users,id'],
-            'status' => ['nullable', 'in:present,late,absent,excused'],
-        ]);
-
-        $studentId = $validated['student_id'];
-        $status = $validated['status'] ?? null;
-
-        $session->loadMissing('schedule');
-        $eligible = Enrollment::query()
-            ->where('student_id', $studentId)
-            ->eligibleForSchedule($session->schedule)
-            ->exists();
-        if (! $eligible) {
-            return back()->with('error', 'That student is not enrolled for this class schedule.');
-        }
-
-        $record = AttendanceRecord::where('attendance_session_id', $session->id)
-            ->where('student_id', $studentId)
-            ->first();
-
-        // Treat "absent" or null as "no record" so reports continue to derive absences
-        if (! $status || $status === 'absent') {
-            if ($record) {
-                $record->delete();
-            }
-        } else {
-            if ($record) {
-                $record->update([
-                    'status' => $status,
-                    'marked_at' => now(),
-                ]);
-            } else {
-                AttendanceRecord::create([
-                    'attendance_session_id' => $session->id,
-                    'student_id' => $studentId,
-                    'status' => $status,
-                    'marked_at' => now(),
-                    'ip_address' => $request->ip(),
-                    'network_identifier' => null,
-                ]);
-            }
-        }
-
-        return redirect()
-            ->route('faculty.sessions.show', $session->id)
-            ->with('success', 'Attendance updated.');
-    }
-
-    /**
-     * Bulk update attendance for all or unmarked students.
-     */
-    public function bulkManualAttendance(Request $request, AttendanceSession $session)
-    {
-        $faculty = Auth::user();
-
-        if ($session->faculty_id !== $faculty->id) {
-            abort(403, 'You cannot update attendance for this session.');
-        }
-
-        $validated = $request->validate([
-            'target' => ['required', 'in:all,unmarked'],
-            'status' => ['required', 'in:present,late,excused,absent'],
-        ]);
-
-        $students = $session->schedule->section
-            ? Enrollment::query()
-                ->eligibleForSchedule($session->schedule)
-                ->pluck('student_id')
-                ->unique()
-                ->values()
-            : collect();
-
-        if ($students->isEmpty()) {
-            return back()->with('error', 'There are no enrolled students to update for this section.');
-        }
-
-        $existingRecords = AttendanceRecord::where('attendance_session_id', $session->id)
-            ->whereIn('student_id', $students)
-            ->get()
-            ->keyBy('student_id');
-
-        $targetIds = $validated['target'] === 'unmarked'
-            ? $students->filter(fn ($id) => ! $existingRecords->has($id))->values()
-            : $students;
-
-        foreach ($targetIds as $studentId) {
-            $record = $existingRecords->get($studentId);
-
-            if ($validated['status'] === 'absent') {
-                if ($record) {
-                    $record->delete();
-                }
-
-                continue;
-            }
-
-            if ($record) {
-                $record->update([
-                    'status' => $validated['status'],
-                    'marked_at' => now(),
-                ]);
-            } else {
-                AttendanceRecord::create([
-                    'attendance_session_id' => $session->id,
-                    'student_id' => $studentId,
-                    'status' => $validated['status'],
-                    'marked_at' => now(),
-                    'ip_address' => $request->ip(),
-                    'network_identifier' => null,
-                ]);
-            }
-        }
-
-        return redirect()
-            ->route('faculty.sessions.show', $session->id)
-            ->with('success', 'Bulk attendance update finished.');
     }
 }

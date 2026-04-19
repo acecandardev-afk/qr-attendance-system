@@ -68,7 +68,7 @@
 
     @if($data)
         <!-- Summary Cards -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
             <div class="bg-white rounded-lg shadow p-4">
                 <p class="text-xs uppercase text-gray-500">Total Classes</p>
                 <p class="text-2xl font-bold text-gray-800 mt-1">{{ $data['total_sessions'] }}</p>
@@ -82,8 +82,16 @@
                 <p class="text-2xl font-bold text-blue-600 mt-1">{{ round($data['overall_stats']['average_attendance_rate'], 2) }}%</p>
             </div>
             <div class="bg-white rounded-lg shadow p-4">
-                <p class="text-xs uppercase text-gray-500">Total Present</p>
+                <p class="text-xs uppercase text-gray-500">Present</p>
                 <p class="text-2xl font-bold text-green-600 mt-1">{{ $data['overall_stats']['total_present'] }}</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <p class="text-xs uppercase text-gray-500">Late</p>
+                <p class="text-2xl font-bold text-yellow-600 mt-1">{{ $data['overall_stats']['total_late'] ?? 0 }}</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <p class="text-xs uppercase text-gray-500">Absent</p>
+                <p class="text-2xl font-bold text-red-600 mt-1">{{ $data['overall_stats']['total_absent'] ?? 0 }}</p>
             </div>
         </div>
 

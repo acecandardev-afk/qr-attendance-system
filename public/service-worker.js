@@ -1,6 +1,6 @@
-const CACHE_NAME = 'smart-attendance-shell-v2';
+const CACHE_NAME = 'smart-attendance-shell-v5';
+// Do not precache '/' — that HTML embeds a CSRF token; stale copies cause POST 419 Page Expired.
 const SHELL_URLS = [
-  '/',
   '/offline.html',
   '/manifest.webmanifest',
 ];
@@ -35,10 +35,29 @@ self.addEventListener('fetch', (event) => {
 
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() =>
-        caches.match('/offline.html').then((response) => response || caches.match('/'))
+      fetch(event.request, { cache: 'no-store' }).catch(() =>
+        caches.match('/offline.html').then((response) => response)
       )
     );
+    return;
+  }
+
+  const url = new URL(event.request.url);
+  // Live faculty JSON must not be read from the precache (stale subjects after edit).
+  if (url.pathname.includes('/sessions/today-data')) {
+    event.respondWith(fetch(event.request, { cache: 'no-store' }));
+    return;
+  }
+
+  // Never cache auth HTML — stale pages embed old CSRF tokens → 419 or "stuck" POST on mobile.
+  const p = url.pathname;
+  if (
+    p === '/' ||
+    p === '/login' ||
+    p.startsWith('/forgot-password') ||
+    p.startsWith('/reset-password')
+  ) {
+    event.respondWith(fetch(event.request, { cache: 'no-store' }));
     return;
   }
 

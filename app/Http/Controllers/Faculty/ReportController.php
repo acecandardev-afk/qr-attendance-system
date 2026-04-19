@@ -28,7 +28,7 @@ class ReportController extends Controller
         ]);
 
         $faculty = Auth::user();
-        
+
         $data = $this->reportService->getFacultyAttendanceReport(
             $faculty->id,
             $request->start_date,
@@ -54,9 +54,15 @@ class ReportController extends Controller
         );
 
         $facultyName = $data['faculty']->full_name_without_middle ?? $data['faculty']->full_name ?? 'faculty';
-        $filename = 'my_attendance_report_' . preg_replace('/[^A-Za-z0-9\-_]+/', '_', $facultyName) . '_' . now()->format('Ymd_His') . '.csv';
+        $filename = 'my_attendance_report_'.preg_replace('/[^A-Za-z0-9\-_]+/', '_', $facultyName).'_'.now()->format('Ymd_His').'.csv';
 
-        return response()->streamDownload(function () use ($data, $request) {
+        $detailRows = $this->reportService->getFacultyAttendanceDetailRows(
+            $faculty->id,
+            $request->start_date,
+            $request->end_date
+        );
+
+        return response()->streamDownload(function () use ($data, $request, $detailRows) {
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
 
@@ -67,10 +73,14 @@ class ReportController extends Controller
             fputcsv($out, ['Total Sessions', $data['total_sessions'] ?? 0]);
             fputcsv($out, ['Active Sessions', $data['active_sessions'] ?? 0]);
             fputcsv($out, ['Closed Sessions', $data['closed_sessions'] ?? 0]);
+            fputcsv($out, ['Expired Sessions', $data['expired_sessions'] ?? 0]);
             fputcsv($out, ['Total Attendance Records', $data['total_attendance_records'] ?? 0]);
+            fputcsv($out, ['Present (records)', $data['total_present'] ?? 0]);
+            fputcsv($out, ['Late (records)', $data['total_late'] ?? 0]);
+            fputcsv($out, ['Absent (records)', $data['total_absent'] ?? 0]);
             fputcsv($out, []);
 
-            fputcsv($out, ['Course Code', 'Course', 'Total Sessions', 'Total Attendance', 'Avg per Session']);
+            fputcsv($out, ['Course Code', 'Course', 'Total Sessions', 'Total Attendance', 'Avg per Session', 'Present', 'Late', 'Absent']);
             foreach (($data['by_course'] ?? collect()) as $courseData) {
                 $course = $courseData['course'] ?? null;
                 fputcsv($out, [
@@ -79,6 +89,24 @@ class ReportController extends Controller
                     $courseData['total_sessions'] ?? 0,
                     $courseData['total_attendance_records'] ?? 0,
                     $courseData['average_attendance_per_session'] ?? 0,
+                    $courseData['present'] ?? 0,
+                    $courseData['late'] ?? 0,
+                    $courseData['absent'] ?? 0,
+                ]);
+            }
+
+            fputcsv($out, []);
+            fputcsv($out, ['Session date', 'Session time', 'Course code', 'Course name', 'Section', 'Student ID', 'Student name', 'Status']);
+            foreach ($detailRows as $row) {
+                fputcsv($out, [
+                    $row['session_date'],
+                    $row['session_time'],
+                    $row['course_code'],
+                    $row['course_name'],
+                    $row['section_name'],
+                    $row['student_user_id'],
+                    $row['student_name'],
+                    $row['status'],
                 ]);
             }
 
@@ -87,6 +115,7 @@ class ReportController extends Controller
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
     }
+
     public function classReport(Request $request)
     {
         $request->validate([
@@ -145,9 +174,16 @@ class ReportController extends Controller
         );
 
         $sectionName = $data['section']->name ?? 'section';
-        $filename = 'class_attendance_' . preg_replace('/[^A-Za-z0-9\-_]+/', '_', $sectionName) . '_' . now()->format('Ymd_His') . '.csv';
+        $filename = 'class_attendance_'.preg_replace('/[^A-Za-z0-9\-_]+/', '_', $sectionName).'_'.now()->format('Ymd_His').'.csv';
 
-        return response()->streamDownload(function () use ($data, $request) {
+        $detailRows = $this->reportService->getSectionAttendanceDetailRows(
+            (int) $request->section_id,
+            $request->course_id ? (int) $request->course_id : null,
+            $request->start_date,
+            $request->end_date
+        );
+
+        return response()->streamDownload(function () use ($data, $request, $detailRows) {
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
 
@@ -157,7 +193,7 @@ class ReportController extends Controller
             fputcsv($out, []);
             fputcsv($out, ['Total Sessions', $data['total_sessions'] ?? 0]);
             fputcsv($out, ['Total Students', $data['total_students'] ?? 0]);
-            fputcsv($out, ['Average Attendance Rate', round($data['overall_stats']['average_attendance_rate'] ?? 0, 2) . '%']);
+            fputcsv($out, ['Average Attendance Rate', round($data['overall_stats']['average_attendance_rate'] ?? 0, 2).'%']);
             fputcsv($out, []);
 
             fputcsv($out, ['Student ID', 'Name', 'Sessions', 'Present', 'Late', 'Absent', 'Attendance Rate']);
@@ -169,7 +205,22 @@ class ReportController extends Controller
                     $row['present'] ?? 0,
                     $row['late'] ?? 0,
                     $row['absent'] ?? 0,
-                    ($row['attendance_rate'] ?? 0) . '%',
+                    ($row['attendance_rate'] ?? 0).'%',
+                ]);
+            }
+
+            fputcsv($out, []);
+            fputcsv($out, ['Session date', 'Session time', 'Course code', 'Course name', 'Section', 'Student ID', 'Student name', 'Status']);
+            foreach ($detailRows as $row) {
+                fputcsv($out, [
+                    $row['session_date'],
+                    $row['session_time'],
+                    $row['course_code'],
+                    $row['course_name'],
+                    $row['section_name'],
+                    $row['student_user_id'],
+                    $row['student_name'],
+                    $row['status'],
                 ]);
             }
 

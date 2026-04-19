@@ -56,6 +56,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | LAN HTTPS port (Caddy)
+    |--------------------------------------------------------------------------
+    |
+    | When students open http://LAN-IP:8000, the app can suggest https://LAN-IP:{port}
+    | for the QR scanner. Must match the Caddyfile listen port.
+    |
+    */
+
+    'lan_https_port' => env('LAN_HTTPS_PORT', '9443'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
@@ -65,7 +77,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'Asia/Manila'),
 
     /*
     |--------------------------------------------------------------------------

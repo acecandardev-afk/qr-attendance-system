@@ -66,7 +66,7 @@ class CourseController extends Controller
             ],
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'units' => 'required|integer|min:1|max:10',
+            'units' => 'required|integer|min:0',
             'department_id' => 'required|exists:departments,id',
             'status' => 'required|in:active,inactive',
         ]);
@@ -95,7 +95,7 @@ class CourseController extends Controller
             ],
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'units' => 'required|integer|min:1|max:10',
+            'units' => 'required|integer|min:0',
             'department_id' => 'required|exists:departments,id',
             'status' => 'required|in:active,inactive',
         ]);

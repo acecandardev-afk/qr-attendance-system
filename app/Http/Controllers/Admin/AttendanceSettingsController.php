@@ -14,6 +14,7 @@ class AttendanceSettingsController extends Controller
         $settings = [
             'qr_expiration_minutes' => AttendanceConfig::get('qr_expiration_minutes', 10),
             'late_threshold_minutes' => AttendanceConfig::get('late_threshold_minutes', 15),
+            'absent_after_minutes' => AttendanceConfig::get('absent_after_minutes', 30),
             'rate_limit_scans_per_minute' => AttendanceConfig::get('rate_limit_scans_per_minute', 30),
             'auto_close_sessions' => AttendanceConfig::get('auto_close_sessions', false),
         ];
@@ -26,12 +27,14 @@ class AttendanceSettingsController extends Controller
         $data = $request->validate([
             'qr_expiration_minutes' => ['required', 'integer', 'min:1', 'max:120'],
             'late_threshold_minutes' => ['required', 'integer', 'min:0', 'max:60'],
+            'absent_after_minutes' => ['required', 'integer', 'min:0', 'max:240'],
             'rate_limit_scans_per_minute' => ['required', 'integer', 'min:1', 'max:200'],
             'auto_close_sessions' => ['nullable', 'boolean'],
         ]);
 
         AttendanceSetting::set('qr_expiration_minutes', $data['qr_expiration_minutes']);
         AttendanceSetting::set('late_threshold_minutes', $data['late_threshold_minutes']);
+        AttendanceSetting::set('absent_after_minutes', $data['absent_after_minutes']);
         AttendanceSetting::set('rate_limit_scans_per_minute', $data['rate_limit_scans_per_minute']);
         AttendanceSetting::set('require_network_match', false);
         AttendanceSetting::set('auto_close_sessions', $request->boolean('auto_close_sessions'));

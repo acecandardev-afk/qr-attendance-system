@@ -9,6 +9,26 @@
         <p class="text-gray-600 mt-2">Scan the QR code displayed by your instructor</p>
     </div>
 
+    @if(\Illuminate\Support\Str::startsWith((string) config('app.url'), 'https://'))
+        <div class="mb-6 rounded-xl border border-sky-300 bg-sky-50 px-4 py-3 text-sky-950 shadow-sm sm:text-base text-[15px] leading-snug" role="note">
+            <p class="font-bold text-sky-900">On your phone — use HTTPS</p>
+            <p class="mt-1">Open this app at <span class="font-mono text-sm font-semibold break-all">{{ rtrim((string) config('app.url'), '/') }}</span> (same Wi‑Fi as the classroom PC). Plain <span class="font-mono">http://</span> or the wrong address will break the camera and scanning.</p>
+        </div>
+    @endif
+
+    @if(!empty($secureScannerUrl))
+        <div class="mb-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-amber-950 shadow-sm" role="status">
+            <p class="font-semibold">Camera needs a secure (HTTPS) address</p>
+            <p class="mt-1 text-sm">You opened this page over plain HTTP. On your phone, use the HTTPS link so the camera can start (required by the browser).</p>
+            <p class="mt-3">
+                <a href="{{ $secureScannerUrl }}" class="inline-flex items-center rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700">
+                    Open scanner on HTTPS
+                </a>
+            </p>
+            <p class="mt-2 text-xs text-amber-900/80">Use the same Wi‑Fi as the classroom PC. If the link fails, ask your instructor to run the app with Caddy (port 9443).</p>
+        </div>
+    @endif
+
     <!-- Attendance Summary Cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow p-4">
@@ -31,8 +51,11 @@
 
     <!-- QR Scanner -->
     <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 class="text-xl font-bold text-gray-800 mb-4">Scan QR Code</h2>
-        
+        <h2 class="text-xl font-bold text-gray-800 mb-2">Scan QR Code</h2>
+        @if(request()->secure())
+            <p class="mb-4 text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">You are on a secure (HTTPS) link — scanning will submit to this site.</p>
+        @endif
+
         <!-- Scanner Container -->
         <div id="scanner-container" class="mb-4">
             <div id="qr-reader" class="mx-auto" style="max-width: 600px;"></div>
@@ -61,7 +84,7 @@
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-bold text-gray-800">Recent Attendance</h2>
-            <a href="{{ route('student.attendance.history') }}" class="text-blue-600 hover:text-blue-800 text-sm">
+            <a href="{{ route('student.attendance.history', [], false) }}" class="text-blue-600 hover:text-blue-800 text-sm">
                 View All →
             </a>
         </div>
@@ -94,9 +117,13 @@
 
 @push('scripts')
 <!-- Include HTML5 QR Code Scanner Library -->
-<script src="https://unpkg.com/html5-qrcode"></script>
+<script src="/vendor/html5-qrcode.min.js"></script>
 
 <script>
+    {{-- Same-origin path only — never absolute APP_URL host (fixes phone posting to 127.0.0.1 and "Processing..." hang) --}}
+    const ATTENDANCE_SCAN_URL = @json(route('student.attendance.scan', [], false));
+    const CSRF_TOKEN = @json(csrf_token());
+
     let html5QrCode = null;
     let isScanning = false;
     let lastDecodedText = null;
@@ -160,11 +187,14 @@
 
         for (const item of queue) {
             try {
-                const response = await fetch('{{ route('student.attendance.scan') }}', {
+                const response = await fetch(ATTENDANCE_SCAN_URL, {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': CSRF_TOKEN,
+                        'X-Requested-With': 'XMLHttpRequest',
                     },
                     body: JSON.stringify({
                         qr_data: item.qr_data,
@@ -221,12 +251,26 @@
     });
     window.addEventListener('offline', updateNetworkStatus);
 
+    /**
+     * Browsers require a secure context for getUserMedia. Some mobile WebViews set
+     * isSecureContext incorrectly on https:// LAN URLs; trust protocol + hostname too.
+     */
+    function hasSecureContextForCamera() {
+        if (location.protocol === 'https:') {
+            return true;
+        }
+        if (typeof window.isSecureContext !== 'undefined' && window.isSecureContext) {
+            return true;
+        }
+        const h = location.hostname;
+        return h === 'localhost' || h === '127.0.0.1' || h === '[::1]';
+    }
+
     function getFriendlyCameraError(err) {
         const msg = String((err && (err.message || err.name)) || '').toLowerCase();
-        const isSecure = window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
-        if (!isSecure) {
-            return 'Camera access works only on HTTPS (or localhost). Open the site using a secure URL, then try again.';
+        if (!hasSecureContextForCamera()) {
+            return 'The camera only works on HTTPS or on localhost — not on plain http:// with your Wi‑Fi IP. Use the “Open scanner on HTTPS” button above, or open https://YOUR_CLASSROOM_PC:9443 (Caddy) on the same Wi‑Fi.';
         }
         if (msg.includes('notallowed') || msg.includes('permission') || msg.includes('denied')) {
             return 'Camera permission is blocked. Click the lock/camera icon in your browser address bar, allow camera access, then reload this page.';
@@ -338,26 +382,50 @@
         // Show processing message
         showMessage('Processing...', 'info');
 
-        // Send to server immediately
-        fetch('{{ route('student.attendance.scan') }}', {
+        const controller = new AbortController();
+        const timeoutMs = 45000;
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+        fetch(ATTENDANCE_SCAN_URL, {
             method: 'POST',
+            signal: controller.signal,
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': CSRF_TOKEN,
+                'X-Requested-With': 'XMLHttpRequest',
             },
             body: JSON.stringify({
                 qr_data: decodedText
             })
         })
-        .then(async response => {
-            const contentType = response.headers.get('content-type') || '';
-            if (!contentType.includes('application/json')) {
-                throw new Error('bad_response');
+        .then(async (response) => {
+            const text = await response.text();
+            let data = null;
+            try {
+                data = text ? JSON.parse(text) : null;
+            } catch (e) {
+                data = null;
             }
-            const data = await response.json();
-            return { data };
-        })
-        .then(({ data }) => {
+
+            if (response.status === 419) {
+                showMessage('<strong>Session expired</strong><br>Reload this page, log in again, then scan.', 'error');
+                return;
+            }
+            if (response.status === 401) {
+                showMessage('<strong>Not signed in</strong><br>Open this page again and log in, then scan.', 'error');
+                return;
+            }
+
+            if (!data || typeof data !== 'object') {
+                showMessage(
+                    '<strong>Server error</strong><br>The server did not return JSON. If you are not on the class HTTPS link, open the app using the HTTPS address shown at the top of this page.',
+                    'error'
+                );
+                return;
+            }
+
             if (data.success) {
                 const msg = escapeHtml(data.message || 'Your attendance was recorded.');
                 const course = escapeHtml(data.course || '');
@@ -379,22 +447,27 @@
                 return;
             }
 
-            const userMsg = (data && typeof data.message === 'string' && data.message.trim())
+            const userMsg = (typeof data.message === 'string' && data.message.trim())
                 ? data.message
                 : 'We could not record your attendance. Please try again.';
             showMessage('<strong>Something went wrong</strong><br>' + escapeHtml(userMsg), 'error');
         })
-        .catch(() => {
-            const networkMessage = navigator.onLine
-                ? 'We could not reach the server. Check your connection and try again.'
-                : 'You appear to be offline. When you are back online, your scan can be submitted automatically if it was saved.';
-            showMessage('<strong>Connection problem</strong><br>' + escapeHtml(networkMessage), 'error');
+        .catch((err) => {
+            if (err && err.name === 'AbortError') {
+                showMessage('<strong>Request timed out</strong><br>Check Wi‑Fi, reload the page, and try again.', 'error');
+            } else {
+                const networkMessage = navigator.onLine
+                    ? 'We could not reach the server. Use the HTTPS class link (top of page), check Wi‑Fi, and try again.'
+                    : 'You appear to be offline. When you are back online, your scan can be submitted automatically if it was saved.';
+                showMessage('<strong>Connection problem</strong><br>' + escapeHtml(networkMessage), 'error');
 
-            if (!navigator.onLine) {
-                enqueueScan(decodedText);
+                if (!navigator.onLine) {
+                    enqueueScan(decodedText);
+                }
             }
         })
         .finally(() => {
+            clearTimeout(timeoutId);
             scanInFlight = false;
         });
     }

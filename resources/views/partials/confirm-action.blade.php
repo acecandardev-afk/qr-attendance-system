@@ -1,26 +1,24 @@
 {{--
     In-app confirmation (replaces window.confirm — no "localhost says" banner).
 
-    @include('partials.confirm-action', [
+    {!! view('partials.confirm-action', [
         'action' => route(...),
         'title' => 'Delete this schedule?',
         'message' => 'Optional detail text.',
         'trigger' => 'Delete',
         'confirm' => 'Delete',
         'triggerClass' => 'text-red-600 hover:text-red-900 text-sm font-medium',
-        'spoof' => 'DELETE',   // omit or null for plain POST (e.g. close session)
-    ])
+        'confirmPlainPost' => true,   // POST-only actions; omit key for DELETE (default).
+    ])->render() !!}
 --}}
 @php
-    if (! isset($spoof)) {
-        $spoof = 'DELETE';
-    }
     if (! isset($wrapperClass)) {
         $wrapperClass = 'inline';
     }
     $trigger = $trigger ?? 'Delete';
     $confirm = $confirm ?? 'Delete';
     $triggerClass = $triggerClass ?? 'text-red-600 hover:text-red-900 text-sm font-medium';
+    $confirmButtonClass = $confirmButtonClass ?? 'px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700';
     $dialogId = $dialogId ?? 'confirm-'.uniqid('', true);
 @endphp
 <div x-data="{ open: false }" class="{{ $wrapperClass }}">
@@ -57,10 +55,10 @@
                     </button>
                     <form method="POST" action="{{ $action }}" class="inline">
                         @csrf
-                        @if($spoof)
-                            @method($spoof)
+                        @if(! ($confirmPlainPost ?? false))
+                            @method('DELETE')
                         @endif
-                        <button type="submit" class="px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700">
+                        <button type="submit" class="{{ $confirmButtonClass }}">
                             {{ $confirm }}
                         </button>
                     </form>

@@ -2,13 +2,15 @@
 
 namespace App\Services;
 
+use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
 use App\Models\Schedule;
+use App\Support\AttendanceConfig;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
-use App\Support\AttendanceConfig;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class AttendanceSessionService
 {
@@ -30,9 +32,14 @@ class AttendanceSessionService
         // Generate unique session token
         $sessionToken = $this->generateUniqueToken();
 
-        // Calculate expiration (config/DB value; Carbon requires int|float)
+        $schedule->loadMissing('faculty');
+
         $startedAt = Carbon::now();
-        $expiresAt = $startedAt->copy()->addMinutes((int) AttendanceConfig::get('qr_expiration_minutes', 10));
+        $qrMinutes = $schedule->faculty?->check_in_code_valid_minutes;
+        if ($qrMinutes === null || $qrMinutes < 1) {
+            $qrMinutes = (int) AttendanceConfig::get('qr_expiration_minutes', 10);
+        }
+        $expiresAt = $startedAt->copy()->addMinutes($qrMinutes);
 
         // Create session record
         $session = AttendanceSession::create([
@@ -80,10 +87,11 @@ class AttendanceSessionService
             ->margin(2)
             ->errorCorrection('H')
             ->generate($payload);
+        $qrCode = $qrCode instanceof HtmlString ? $qrCode->toHtml() : (string) $qrCode;
 
         $dir = config('attendance.qr_storage_path', 'qrcodes');
-        $filename = "qr_session_{$session->id}_" . time() . ".svg";
-        $path = $dir . '/' . $filename;
+        $filename = "qr_session_{$session->id}_".time().'.svg';
+        $path = $dir.'/'.$filename;
 
         if (! Storage::disk('public')->exists($dir)) {
             Storage::disk('public')->makeDirectory($dir);
@@ -105,8 +113,9 @@ class AttendanceSessionService
             ->margin(2)
             ->errorCorrection('H')
             ->generate($payload);
+        $svg = $svg instanceof HtmlString ? $svg->toHtml() : (string) $svg;
 
-        return 'data:image/svg+xml;base64,' . base64_encode($svg);
+        return 'data:image/svg+xml;base64,'.base64_encode($svg);
     }
 
     /**
@@ -135,7 +144,7 @@ class AttendanceSessionService
     {
         $data = json_decode($payload, true);
 
-        if (!$data || !isset($data['signature'])) {
+        if (! $data || ! isset($data['signature'])) {
             throw new \Exception('This is not a valid attendance code. Please scan the QR code your instructor shows in class.');
         }
 
@@ -146,7 +155,7 @@ class AttendanceSessionService
         // Verify signature
         $expectedSignature = hash_hmac('sha256', json_encode($data), config('app.key'));
 
-        if (!hash_equals($expectedSignature, $signature)) {
+        if (! hash_equals($expectedSignature, $signature)) {
             throw new \Exception('This attendance code could not be verified. Ask your instructor for a fresh code.');
         }
 
@@ -158,10 +167,48 @@ class AttendanceSessionService
      */
     public function closeSession(AttendanceSession $session): void
     {
+        $closedAt = Carbon::now();
         $session->update([
             'status' => 'closed',
-            'closed_at' => Carbon::now(),
+            'closed_at' => $closedAt,
         ]);
+        $this->finalizeMissingAbsentRecords($session->fresh());
+    }
+
+    /**
+     * Create absent rows for enrolled students who never checked in (idempotent).
+     */
+    public function finalizeMissingAbsentRecords(AttendanceSession $session): void
+    {
+        $session->loadMissing('schedule');
+        if (! $session->schedule) {
+            return;
+        }
+
+        $stats = app(AttendanceSessionStatisticsService::class);
+        $studentIds = $stats->enrolledStudentIds($session);
+        if ($studentIds->isEmpty()) {
+            return;
+        }
+
+        $existing = $session->attendanceRecords()->pluck('student_id')->unique();
+        $missing = $studentIds->diff($existing);
+        $markedAt = $session->closed_at ?? $session->expires_at ?? Carbon::now();
+
+        foreach ($missing as $studentId) {
+            AttendanceRecord::firstOrCreate(
+                [
+                    'attendance_session_id' => $session->id,
+                    'student_id' => $studentId,
+                ],
+                [
+                    'status' => 'absent',
+                    'marked_at' => $markedAt,
+                    'ip_address' => null,
+                    'network_identifier' => null,
+                ]
+            );
+        }
     }
 
     /**
@@ -169,11 +216,20 @@ class AttendanceSessionService
      */
     public function markExpiredSessions(): int
     {
-        return AttendanceSession::where('status', 'active')
+        $sessions = AttendanceSession::where('status', 'active')
             ->where('expires_at', '<=', Carbon::now())
-            ->update([
+            ->get();
+
+        $now = Carbon::now();
+        foreach ($sessions as $session) {
+            $session->update([
                 'status' => 'expired',
+                'closed_at' => $session->closed_at ?? $now,
             ]);
+            $this->finalizeMissingAbsentRecords($session->fresh());
+        }
+
+        return $sessions->count();
     }
 
     /**
@@ -183,9 +239,9 @@ class AttendanceSessionService
     {
         // Extract subnet (first 3 octets for IPv4)
         $parts = explode('.', $ipAddress);
-        
+
         if (count($parts) === 4) {
-            return implode('.', array_slice($parts, 0, 3)) . '.0/24';
+            return implode('.', array_slice($parts, 0, 3)).'.0/24';
         }
 
         return $ipAddress; // Return as-is if not IPv4
@@ -201,7 +257,7 @@ class AttendanceSessionService
         }
 
         $studentNetwork = $this->getNetworkIdentifier($ipAddress);
-        
+
         return $studentNetwork === $allowedNetwork;
     }
 }

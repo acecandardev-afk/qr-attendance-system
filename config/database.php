@@ -2,6 +2,9 @@
 
 use Illuminate\Support\Str;
 
+// Some hosts set DATABASE_URL; Laravel also supports DB_URL.
+$dbUrl = env('DB_URL', env('DATABASE_URL'));
+
 return [
 
     /*
@@ -33,11 +36,12 @@ return [
 
         'sqlite' => [
             'driver' => 'sqlite',
-            'url' => env('DB_URL'),
+            'url' => $dbUrl,
             'database' => env('DB_DATABASE', database_path('database.sqlite')),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
-            'busy_timeout' => null,
+            // Avoid multi-second hangs when cache/session/queue hit SQLite at once (e.g. login POST on a phone).
+            'busy_timeout' => env('DB_SQLITE_BUSY_TIMEOUT', 5000),
             'journal_mode' => null,
             'synchronous' => null,
             'transaction_mode' => 'DEFERRED',
@@ -45,7 +49,7 @@ return [
 
         'mysql' => [
             'driver' => 'mysql',
-            'url' => env('DB_URL'),
+            'url' => $dbUrl,
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '3306'),
             'database' => env('DB_DATABASE', 'laravel'),
@@ -65,7 +69,7 @@ return [
 
         'mariadb' => [
             'driver' => 'mariadb',
-            'url' => env('DB_URL'),
+            'url' => $dbUrl,
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '3306'),
             'database' => env('DB_DATABASE', 'laravel'),
@@ -85,7 +89,7 @@ return [
 
         'pgsql' => [
             'driver' => 'pgsql',
-            'url' => env('DB_URL'),
+            'url' => $dbUrl,
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '5432'),
             'database' => env('DB_DATABASE', 'laravel'),
@@ -100,7 +104,7 @@ return [
 
         'sqlsrv' => [
             'driver' => 'sqlsrv',
-            'url' => env('DB_URL'),
+            'url' => $dbUrl,
             'host' => env('DB_HOST', 'localhost'),
             'port' => env('DB_PORT', '1433'),
             'database' => env('DB_DATABASE', 'laravel'),

@@ -25,16 +25,16 @@
 
         <!-- Right: login card -->
         <div class="w-full max-w-none md:max-w-none md:w-96">
-            <div class="bg-white/95 backdrop-blur shadow-2xl rounded-2xl px-6 py-10 sm:px-8 sm:py-10 transform transition-all duration-300 hover:shadow-[0_20px_45px_rgba(15,23,42,0.35)] hover:-translate-y-1">
+            <div class="bg-white/95 backdrop-blur shadow-2xl rounded-2xl px-6 pt-10 pb-5 sm:px-8 sm:pt-10 sm:pb-14 transform transition-all duration-300 hover:shadow-[0_20px_45px_rgba(15,23,42,0.35)] hover:-translate-y-1">
                 <div class="text-center mb-8">
                     <div class="flex justify-center mb-4">
-                        <img src="{{ asset('norsu.webp') }}" alt="Logo" class="w-24 h-24 sm:w-20 sm:h-20 object-contain">
+                        <img src="/norsu.webp" alt="Logo" class="w-24 h-24 sm:w-20 sm:h-20 object-contain">
                     </div>
                     <h2 class="text-2xl font-bold text-gray-900">Sign in</h2>
                     <p class="text-gray-500 mt-2 text-xs">Access the NORSU-Guihulngan smart attendance system</p>
                 </div>
 
-                <form method="POST" action="{{ route('login.post') }}" class="space-y-5">
+                <form id="login-form" method="POST" action="{{ route('login.post', [], false) }}" class="space-y-5" autocomplete="on">
                     @csrf
 
                     <div>
@@ -91,16 +91,18 @@
                             <input type="checkbox" name="remember" class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500">
                             <span class="ml-2 text-gray-600">Remember me</span>
                         </label>
-                        <a href="{{ route('password.request') }}" class="text-blue-600 hover:underline font-medium">Forgot password? (uses email)</a>
+                        <a href="{{ route('password.request', [], false) }}" class="text-blue-600 hover:underline font-medium">Forgot password? (uses email)</a>
                     </div>
 
                     <!-- Submit Button -->
                     <button
+                        id="login-submit"
                         type="submit"
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-60 disabled:pointer-events-none"
                     >
                         Sign In
                     </button>
+                    <div></div>
                 </form>
             </div>
         </div>
@@ -124,6 +126,16 @@ document.addEventListener('DOMContentLoaded', function () {
         eye.classList.toggle('hidden', isHidden);
         eyeOff.classList.toggle('hidden', !isHidden);
     });
+
+    const form = document.getElementById('login-form');
+    const submitBtn = document.getElementById('login-submit');
+    if (form && submitBtn) {
+        form.addEventListener('submit', function () {
+            if (submitBtn.disabled) return;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Signing in…';
+        });
+    }
 });
 </script>
 @endpush

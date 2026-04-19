@@ -9,8 +9,10 @@ use App\Models\Course;
 use App\Models\Schedule;
 use App\Models\Section;
 use App\Models\User;
+use App\Rules\ValidScheduleEndTime;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class ScheduleController extends Controller
 {
@@ -72,10 +74,21 @@ class ScheduleController extends Controller
             'faculty_id' => 'required|exists:users,id',
             'day_of_week' => ['required', Rule::in(Schedule::DAY_PATTERNS)],
             'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
+            'end_time' => ['required', 'date_format:H:i', new ValidScheduleEndTime($request->input('start_time'))],
             'room' => 'nullable|string|max:255',
             'status' => 'required|in:active,inactive',
         ]);
+
+        if ($validated['status'] === 'active' && Schedule::sectionHasScheduleTimeConflict(
+            (int) $validated['section_id'],
+            $validated['day_of_week'],
+            $validated['start_time'],
+            $validated['end_time'],
+        )) {
+            throw ValidationException::withMessages([
+                'start_time' => 'This section already has an active class that overlaps this schedule or leaves less than one minute between classes.',
+            ]);
+        }
 
         Schedule::create($validated);
 
@@ -100,10 +113,22 @@ class ScheduleController extends Controller
             'faculty_id' => 'required|exists:users,id',
             'day_of_week' => ['required', Rule::in(Schedule::DAY_PATTERNS)],
             'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
+            'end_time' => ['required', 'date_format:H:i', new ValidScheduleEndTime($request->input('start_time'))],
             'room' => 'nullable|string|max:255',
             'status' => 'required|in:active,inactive',
         ]);
+
+        if ($validated['status'] === 'active' && Schedule::sectionHasScheduleTimeConflict(
+            (int) $validated['section_id'],
+            $validated['day_of_week'],
+            $validated['start_time'],
+            $validated['end_time'],
+            $schedule->id,
+        )) {
+            throw ValidationException::withMessages([
+                'start_time' => 'This section already has an active class that overlaps this schedule or leaves less than one minute between classes.',
+            ]);
+        }
 
         $schedule->update($validated);
 

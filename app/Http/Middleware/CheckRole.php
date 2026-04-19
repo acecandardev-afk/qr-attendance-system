@@ -11,8 +11,8 @@ class CheckRole
 {
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        if (!Auth::check()) {
-            return redirect()->route('login');
+        if (! Auth::check()) {
+            return redirect()->to('/');
         }
 
         $user = Auth::user();
@@ -22,7 +22,7 @@ class CheckRole
                 abort(403, 'You do not have permission to view this page.');
             }
 
-            return redirect()->route('dashboard')
+            return redirect()->to(route('dashboard', [], false))
                 ->with('error', 'You were redirected to your dashboard because this page is restricted.');
         }
 

@@ -1,168 +1,85 @@
 @extends('layouts.app')
 
-@section('title', 'Enrollments')
+@section('title', 'Class lists & requests')
 
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-800">Student enrollments</h1>
-            <p class="text-gray-600 mt-2">Enroll students in your sections and choose which of <span class="font-semibold">your</span> class schedules apply. Each student can have a different set of schedules.</p>
-        </div>
-        @if(empty($noTeachingSections ?? false))
-            <a href="{{ route('faculty.enrollments.create') }}" class="inline-flex justify-center bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold">
-                + Add enrollment
-            </a>
-        @endif
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 dark:text-slate-100">Class lists &amp; requests</h1>
+        <p class="text-gray-600 dark:text-slate-300 mt-2">Students ask to join from their own account. When you approve, they appear on your class list. Use <strong>View list</strong> to see everyone in a specific class time, sorted by last name.</p>
     </div>
 
     @if(!empty($noTeachingSections ?? false))
-        <div class="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-lg">
-            You do not have any active class schedules yet. An administrator must assign you to subjects and schedules before you can manage enrollments here.
+        <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-100 px-4 py-3 rounded-lg">
+            You do not have any active class schedules yet. An administrator needs to set up your subjects and times before students can request to join.
         </div>
     @else
-    <!-- Filters -->
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <form method="GET" action="{{ route('faculty.enrollments.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4" x-data="{ debounceTimer: null }">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Section</label>
-                <select name="section_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                    <option value="">All your sections</option>
-                    @foreach($sections as $section)
-                        <option value="{{ $section->id }}" {{ request('section_id') == $section->id ? 'selected' : '' }}>
-                            {{ $section->name }}
-                        </option>
+        @if(isset($mySchedules) && $mySchedules->isNotEmpty())
+            <div class="bg-white dark:bg-slate-800/90 rounded-lg shadow p-6 mb-6 border border-transparent dark:border-slate-600/80">
+                <h2 class="text-lg font-bold text-gray-800 dark:text-slate-100 mb-3">Your class times</h2>
+                <ul class="divide-y divide-gray-100 dark:divide-slate-600/80">
+                    @foreach($mySchedules as $sch)
+                        <li class="py-3 flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <span class="font-semibold text-gray-900 dark:text-slate-100">{{ $sch->course?->code ?? 'Subject' }}</span>
+                                <span class="text-gray-600 dark:text-slate-300"> — {{ $sch->section?->name ?? 'Section' }}</span>
+                                <p class="text-sm text-gray-500 dark:text-slate-400 mt-0.5">{{ $sch->day_of_week }} · {{ $sch->time_range }}</p>
+                            </div>
+                            <a href="{{ route('faculty.classes.roster', $sch) }}" class="shrink-0 inline-flex items-center justify-center bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 px-4 py-2 rounded-lg text-sm font-semibold">
+                                View list
+                            </a>
+                        </li>
                     @endforeach
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                <select name="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                    <option value="">All statuses</option>
-                    <option value="enrolled" {{ request('status') == 'enrolled' ? 'selected' : '' }}>Enrolled</option>
-                    <option value="dropped" {{ request('status') == 'dropped' ? 'selected' : '' }}>Dropped</option>
-                    <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Completed</option>
-                </select>
-            </div>
-
-            <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Find student</label>
-                <input
-                    type="search"
-                    name="q"
-                    value="{{ request('q') }}"
-                    placeholder="Name or ID number…"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    autocomplete="off"
-                    @input="clearTimeout(debounceTimer); debounceTimer = setTimeout(() => $el.closest('form').submit(), 450)"
-                >
-            </div>
-
-            <div class="md:col-span-4 flex flex-wrap items-end gap-2">
-                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg">
-                    Filter
-                </button>
-                <a href="{{ route('faculty.enrollments.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">
-                    Reset
-                </a>
-            </div>
-        </form>
-    </div>
-
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student ID</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Section</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Schedules</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">School year</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Semester</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                @forelse($enrollments as $enrollment)
-                    <tr>
-                        <td class="px-6 py-4 text-sm text-gray-900">
-                            @if($enrollment->student)
-                                {{ $enrollment->student->full_name }}
-                                @if($enrollment->student->trashed())
-                                    <span class="block text-xs font-medium text-amber-700 mt-0.5">Student account removed</span>
-                                @endif
-                            @else
-                                <span class="text-gray-500 italic">Unknown student</span>
-                            @endif
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ $enrollment->student?->user_id ?? '—' }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            @if($enrollment->section)
-                                {{ $enrollment->section->name }}
-                            @else
-                                <span class="text-gray-500 italic">—</span>
-                            @endif
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-800 align-top max-w-xs">
-                            @if($enrollment->schedules->isEmpty())
-                                <span class="text-gray-600">All classes (section)</span>
-                            @else
-                                <ul class="list-disc list-inside space-y-0.5">
-                                    @foreach($enrollment->schedules as $sch)
-                                        <li>
-                                            <span class="font-medium">{{ $sch->course?->code ?? 'Subject' }}</span>
-                                            <span class="text-gray-600"> — {{ $sch->day_of_week }} {{ $sch->time_range }}</span>
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            @endif
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ $enrollment->school_year }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ $enrollment->semester }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 py-1 text-xs font-semibold rounded
-                                @if($enrollment->status === 'enrolled') bg-green-100 text-green-800
-                                @elseif($enrollment->status === 'dropped') bg-red-100 text-red-800
-                                @else bg-gray-100 text-gray-800
-                                @endif">
-                                {{ ucfirst($enrollment->status) }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <a href="{{ route('faculty.enrollments.edit', $enrollment->id) }}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
-                            @include('partials.confirm-action', [
-                                'action' => route('faculty.enrollments.destroy', $enrollment->id),
-                                'title' => 'Remove this enrollment?',
-                                'message' => 'The student will no longer be listed for this section.',
-                                'trigger' => 'Delete',
-                                'confirm' => 'Remove',
-                            ])
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="8" class="px-6 py-8 text-center text-gray-500">
-                            No enrollments in your sections yet.
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-
-        @if($enrollments->hasPages())
-            <div class="px-6 py-4 bg-gray-50">
-                {{ $enrollments->links() }}
+                </ul>
             </div>
         @endif
-    </div>
+
+        @if(isset($pending) && $pending->isNotEmpty())
+            <div class="bg-white dark:bg-slate-800/90 rounded-lg shadow p-6 mb-6 border border-transparent dark:border-slate-600/80">
+                <h2 class="text-lg font-bold text-gray-800 dark:text-slate-100 mb-3">Waiting for you</h2>
+                <p class="text-sm text-gray-600 dark:text-slate-300 mb-4">These students asked to join one of your classes. Approve to add them, or choose <strong>Not now</strong> if it was a mistake.</p>
+                <ul class="space-y-4">
+                    @foreach($pending as $req)
+                        <li class="border border-gray-200 dark:border-slate-600 rounded-lg p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                            <div>
+                                <p class="font-semibold text-gray-900 dark:text-slate-100">{{ $req->student?->full_name ?? 'Student' }}</p>
+                                <p class="text-sm text-gray-500 dark:text-slate-400">ID: {{ $req->student?->user_id ?? '—' }}</p>
+                                <p class="text-sm text-gray-600 dark:text-slate-300 mt-1">{{ $req->section?->name ?? 'Section' }} · {{ $req->school_year }} · {{ $req->semester }}</p>
+                                @if($req->schedules->isNotEmpty())
+                                    <ul class="mt-2 text-sm text-gray-600 dark:text-slate-300 list-disc list-inside">
+                                        @foreach($req->schedules as $sch)
+                                            <li>{{ $sch->course?->code ?? 'Subject' }} — {{ $sch->day_of_week }} {{ $sch->time_range }}</li>
+                                        @endforeach
+                                    </ul>
+                                @endif
+                            </div>
+                            <div class="flex flex-wrap gap-2 shrink-0">
+                                {!! view('partials.confirm-action', [
+                                    'action' => route('faculty.enrollments.approve', $req->id),
+                                    'title' => 'Add this student to your class?',
+                                    'message' => 'They will be able to check in when you run attendance for this class time.',
+                                    'trigger' => 'Approve',
+                                    'confirm' => 'Yes, add them',
+                                    'confirmPlainPost' => true,
+                                    'triggerClass' => 'inline-flex justify-center bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold',
+                                    'confirmButtonClass' => 'px-4 py-2 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700',
+                                ])->render() !!}
+                                {!! view('partials.confirm-action', [
+                                    'action' => route('faculty.enrollments.decline', $req->id),
+                                    'title' => 'Decline this request?',
+                                    'message' => 'The student can send another request later if they need to.',
+                                    'trigger' => 'Not now',
+                                    'confirm' => 'Decline',
+                                    'confirmPlainPost' => true,
+                                    'triggerClass' => 'inline-flex justify-center border border-slate-300 dark:border-slate-500 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700',
+                                    'confirmButtonClass' => 'px-4 py-2 rounded-lg bg-slate-700 text-white font-semibold hover:bg-slate-800',
+                                ])->render() !!}
+                            </div>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
     @endif
 </div>
 @endsection

@@ -12,6 +12,10 @@ class Enrollment extends Model
 
     public const SEMESTERS = ['1st Sem', '2nd Sem'];
 
+    public const STATUS_PENDING = 'pending';
+
+    public const STATUS_ENROLLED = 'enrolled';
+
     protected $fillable = [
         'student_id',
         'section_id',
@@ -60,6 +64,16 @@ class Enrollment extends Model
         return $query->where('status', 'enrolled');
     }
 
+    public function scopePending($query)
+    {
+        return $query->where('status', self::STATUS_PENDING);
+    }
+
+    public function scopeActiveEnrollment($query)
+    {
+        return $query->whereIn('status', [self::STATUS_PENDING, self::STATUS_ENROLLED]);
+    }
+
     public function scopeByStudent($query, $studentId)
     {
         return $query->where('student_id', $studentId);
@@ -84,6 +98,11 @@ class Enrollment extends Model
     public function isEnrolled()
     {
         return $this->status === 'enrolled';
+    }
+
+    public function isPending()
+    {
+        return $this->status === self::STATUS_PENDING;
     }
 
     public function isDropped()

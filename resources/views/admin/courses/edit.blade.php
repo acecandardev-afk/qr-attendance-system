@@ -50,7 +50,7 @@
                 <!-- Units -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Units *</label>
-                    <input type="number" name="units" value="{{ old('units', $course->units) }}" required min="1" max="10"
+                    <input type="number" name="units" value="{{ old('units', $course->units) }}" required min="0" step="1"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg @error('units') border-red-500 @enderror">
                     @error('units')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>

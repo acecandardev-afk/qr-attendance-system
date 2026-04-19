@@ -17,7 +17,7 @@ class AttendanceConfig
                 return filter_var($dbValue, FILTER_VALIDATE_BOOL);
             }
 
-            if (in_array($key, ['qr_expiration_minutes', 'late_threshold_minutes', 'rate_limit_scans_per_minute'], true)) {
+            if (in_array($key, ['qr_expiration_minutes', 'late_threshold_minutes', 'rate_limit_scans_per_minute', 'absent_after_minutes'], true)) {
                 return (int) $dbValue;
             }
 
@@ -30,4 +30,3 @@ class AttendanceConfig
         return config($configKey, $default);
     }
 }
-

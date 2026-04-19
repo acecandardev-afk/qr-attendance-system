@@ -4,12 +4,13 @@ namespace App\Services;
 
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
-use App\Models\User;
-use App\Models\Section;
-use App\Models\Schedule;
 use App\Models\Course;
+use App\Models\Enrollment;
+use App\Models\Schedule;
+use App\Models\Section;
+use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 
 class ReportService
 {
@@ -32,9 +33,9 @@ class ReportService
         $records = $query->get();
 
         // Group by course
-        $byCourse = $records->groupBy(function($record) {
+        $byCourse = $records->groupBy(function ($record) {
             return $record->attendanceSession->schedule->course_id;
-        })->map(function($courseRecords) {
+        })->map(function ($courseRecords) {
             return [
                 'course' => $courseRecords->first()->attendanceSession->schedule->course,
                 'total' => $courseRecords->count(),
@@ -42,7 +43,7 @@ class ReportService
                 'late' => $courseRecords->where('status', 'late')->count(),
                 'absent' => $courseRecords->where('status', 'absent')->count(),
                 'excused' => $courseRecords->where('status', 'excused')->count(),
-                'attendance_rate' => $courseRecords->count() > 0 
+                'attendance_rate' => $courseRecords->count() > 0
                     ? round(($courseRecords->whereIn('status', ['present', 'late'])->count() / $courseRecords->count()) * 100, 2)
                     : 0,
             ];
@@ -69,53 +70,75 @@ class ReportService
     {
         $section = Section::with('students')->findOrFail($sectionId);
 
-        // Get all schedules for this section
-        $schedulesQuery = Schedule::where('section_id', $sectionId)->with('course');
-        
+        [$schedules, $sessions] = $this->sectionReportSchedulesAndSessions($sectionId, $courseId, $startDate, $endDate);
+
         if ($courseId) {
-            $schedulesQuery->where('course_id', $courseId);
+            $studentIds = collect();
+            foreach ($schedules as $sch) {
+                $studentIds = $studentIds->merge(Enrollment::eligibleForSchedule($sch)->pluck('student_id'));
+            }
+            $students = User::query()
+                ->whereIn('id', $studentIds->unique()->filter())
+                ->where('role', 'student')
+                ->orderBy('last_name')
+                ->orderBy('first_name')
+                ->get();
+        } else {
+            $students = $section->students;
         }
 
-        $schedules = $schedulesQuery->get();
-
-        // Get all sessions for these schedules
-        $sessionIds = AttendanceSession::whereIn('schedule_id', $schedules->pluck('id'))
-            ->when($startDate, function($q) use ($startDate) {
-                return $q->whereDate('started_at', '>=', $startDate);
-            })
-            ->when($endDate, function($q) use ($endDate) {
-                return $q->whereDate('started_at', '<=', $endDate);
-            })
-            ->pluck('id');
-
-        // Get attendance records
+        $sessionIds = $sessions->pluck('id');
         $records = AttendanceRecord::whereIn('attendance_session_id', $sessionIds)
             ->with(['student', 'attendanceSession.schedule.course'])
-            ->get();
+            ->get()
+            ->groupBy('student_id');
 
-        // Build student summary
-        $studentSummary = $section->students->map(function($student) use ($records, $sessionIds) {
-            $studentRecords = $records->where('student_id', $student->id);
-            $totalSessions = $sessionIds->count();
+        $statsSvc = app(AttendanceSessionStatisticsService::class);
+
+        $studentSummary = $students->map(function ($student) use ($sessions, $records, $statsSvc) {
+            $studentRecords = $records->get($student->id, collect())->keyBy('attendance_session_id');
+            $totalSessions = $sessions->count();
+            $present = 0;
+            $late = 0;
+            $absent = 0;
+            $excused = 0;
+            foreach ($sessions as $session) {
+                $rec = $studentRecords->get($session->id);
+                if ($rec) {
+                    match ($rec->status) {
+                        'present' => $present++,
+                        'late' => $late++,
+                        'absent' => $absent++,
+                        'excused' => $excused++,
+                        default => null,
+                    };
+
+                    continue;
+                }
+                if ($statsSvc->statusForExportWithoutRecord($session) === 'absent') {
+                    $absent++;
+                }
+            }
+            $attended = $present + $late + $excused;
 
             return [
                 'student' => $student,
                 'total_sessions' => $totalSessions,
-                'attended' => $studentRecords->whereIn('status', ['present', 'late'])->count(),
-                'present' => $studentRecords->where('status', 'present')->count(),
-                'late' => $studentRecords->where('status', 'late')->count(),
-                'absent' => $totalSessions - $studentRecords->count(),
-                'excused' => $studentRecords->where('status', 'excused')->count(),
+                'attended' => $attended,
+                'present' => $present,
+                'late' => $late,
+                'absent' => $absent,
+                'excused' => $excused,
                 'attendance_rate' => $totalSessions > 0
-                    ? round(($studentRecords->whereIn('status', ['present', 'late'])->count() / $totalSessions) * 100, 2)
+                    ? round(($attended / $totalSessions) * 100, 2)
                     : 0,
             ];
         })->sortByDesc('attendance_rate');
 
         return [
             'section' => $section,
-            'total_sessions' => $sessionIds->count(),
-            'total_students' => $section->students->count(),
+            'total_sessions' => $sessions->count(),
+            'total_students' => $students->count(),
             'student_summary' => $studentSummary,
             'overall_stats' => [
                 'average_attendance_rate' => $studentSummary->avg('attendance_rate'),
@@ -124,6 +147,132 @@ class ReportService
                 'total_absent' => $studentSummary->sum('absent'),
             ],
         ];
+    }
+
+    /**
+     * @return array{0: \Illuminate\Support\Collection, 1: \Illuminate\Database\Eloquent\Collection}
+     */
+    protected function sectionReportSchedulesAndSessions(int $sectionId, ?int $courseId, ?string $startDate, ?string $endDate): array
+    {
+        $schedulesQuery = Schedule::where('section_id', $sectionId)->with('course');
+        if ($courseId) {
+            $schedulesQuery->where('course_id', $courseId);
+        }
+        $schedules = $schedulesQuery->get();
+
+        $sessions = AttendanceSession::whereIn('schedule_id', $schedules->pluck('id'))
+            ->when($startDate, fn ($q) => $q->whereDate('started_at', '>=', $startDate))
+            ->when($endDate, fn ($q) => $q->whereDate('started_at', '<=', $endDate))
+            ->with([
+                'schedule.course' => fn ($q) => $q->withTrashed(),
+                'schedule.section' => fn ($q) => $q->withTrashed(),
+                'faculty',
+            ])
+            ->orderBy('started_at')
+            ->get();
+
+        return [$schedules, $sessions];
+    }
+
+    /**
+     * One row per class session × enrolled student (for CSV export).
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function getSectionAttendanceDetailRows(int $sectionId, ?int $courseId, ?string $startDate, ?string $endDate): Collection
+    {
+        [, $sessions] = $this->sectionReportSchedulesAndSessions($sectionId, $courseId, $startDate, $endDate);
+        $statsSvc = app(AttendanceSessionStatisticsService::class);
+
+        return $this->buildSessionStudentDetailRows($sessions, $statsSvc);
+    }
+
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function getFacultyAttendanceDetailRows(int $facultyId, ?string $startDate, ?string $endDate): Collection
+    {
+        $sessions = AttendanceSession::where('faculty_id', $facultyId)
+            ->whereHas('schedule')
+            ->when($startDate, fn ($q) => $q->whereDate('started_at', '>=', $startDate))
+            ->when($endDate, fn ($q) => $q->whereDate('started_at', '<=', $endDate))
+            ->with([
+                'schedule.course' => fn ($q) => $q->withTrashed(),
+                'schedule.section' => fn ($q) => $q->withTrashed(),
+                'attendanceRecords',
+                'faculty',
+            ])
+            ->orderBy('started_at')
+            ->get()
+            ->filter(fn ($session) => $session->schedule !== null);
+
+        $statsSvc = app(AttendanceSessionStatisticsService::class);
+
+        return $this->buildSessionStudentDetailRows($sessions, $statsSvc);
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Collection<int, AttendanceSession>  $sessions
+     * @return Collection<int, array<string, mixed>>
+     */
+    protected function buildSessionStudentDetailRows($sessions, AttendanceSessionStatisticsService $statsSvc): Collection
+    {
+        $rows = collect();
+
+        foreach ($sessions as $session) {
+            $schedule = $session->schedule;
+            if (! $schedule) {
+                continue;
+            }
+
+            $session->loadMissing('attendanceRecords');
+
+            $studentIds = Enrollment::eligibleForSchedule($schedule)->pluck('student_id')->unique()->values();
+            if ($studentIds->isEmpty()) {
+                continue;
+            }
+
+            $users = User::query()
+                ->whereIn('id', $studentIds)
+                ->where('role', 'student')
+                ->orderBy('last_name')
+                ->orderBy('first_name')
+                ->get()
+                ->keyBy('id');
+
+            $records = $session->attendanceRecords->keyBy('student_id');
+
+            $course = $schedule->course;
+            $section = $schedule->section;
+
+            foreach ($studentIds as $studentId) {
+                $student = $users->get($studentId);
+                if (! $student) {
+                    continue;
+                }
+                $rec = $records->get($studentId);
+                if ($rec) {
+                    $status = strtolower((string) $rec->status);
+                } else {
+                    $fallback = $statsSvc->statusForExportWithoutRecord($session);
+                    $status = $fallback === '' ? '' : $fallback;
+                }
+
+                $rows->push([
+                    'session_date' => $session->started_at->format('Y-m-d'),
+                    'session_time' => $session->started_at->format('H:i:s'),
+                    'session_started_at' => $session->started_at->toIso8601String(),
+                    'course_code' => $course->code ?? '',
+                    'course_name' => $course->name ?? '',
+                    'section_name' => $section->name ?? '',
+                    'student_user_id' => $student->user_id ?? '',
+                    'student_name' => $student->full_name ?? '',
+                    'status' => $status,
+                ]);
+            }
+        }
+
+        return $rows;
     }
 
     /**
@@ -153,13 +302,17 @@ class ReportService
             return $session->schedule !== null && $session->schedule->course !== null;
         })->values();
 
+        $totalPresent = (int) $sessions->sum(fn ($session) => $session->attendanceRecords->where('status', 'present')->count());
+        $totalLate = (int) $sessions->sum(fn ($session) => $session->attendanceRecords->where('status', 'late')->count());
+        $totalAbsent = (int) $sessions->sum(fn ($session) => $session->attendanceRecords->where('status', 'absent')->count());
+
         // Group by course
         $byCourse = $sessions->groupBy(function ($session) {
             return $session->schedule?->course_id;
         })->filter(function ($courseSessions, $courseId) {
             return ! is_null($courseId);
         })->map(function ($courseSessions) {
-            $totalRecords = $courseSessions->sum(function($session) {
+            $totalRecords = $courseSessions->sum(function ($session) {
                 return $session->attendanceRecords->count();
             });
 
@@ -170,6 +323,9 @@ class ReportService
                 'average_attendance_per_session' => $courseSessions->count() > 0
                     ? round($totalRecords / $courseSessions->count(), 2)
                     : 0,
+                'present' => (int) $courseSessions->sum(fn ($s) => $s->attendanceRecords->where('status', 'present')->count()),
+                'late' => (int) $courseSessions->sum(fn ($s) => $s->attendanceRecords->where('status', 'late')->count()),
+                'absent' => (int) $courseSessions->sum(fn ($s) => $s->attendanceRecords->where('status', 'absent')->count()),
             ];
         });
 
@@ -178,9 +334,13 @@ class ReportService
             'total_sessions' => $sessions->count(),
             'active_sessions' => $sessions->where('status', 'active')->count(),
             'closed_sessions' => $sessions->where('status', 'closed')->count(),
-            'total_attendance_records' => $sessions->sum(function($session) {
+            'expired_sessions' => $sessions->where('status', 'expired')->count(),
+            'total_attendance_records' => $sessions->sum(function ($session) {
                 return $session->attendanceRecords->count();
             }),
+            'total_present' => $totalPresent,
+            'total_late' => $totalLate,
+            'total_absent' => $totalAbsent,
             'by_course' => $byCourse,
             'recent_sessions' => $sessions->sortByDesc('started_at')->take(10),
         ];
@@ -272,7 +432,7 @@ class ReportService
             ->with('attendanceSession.schedule.section');
 
         if ($sectionId) {
-            $query->whereHas('attendanceSession.schedule', function($q) use ($sectionId) {
+            $query->whereHas('attendanceSession.schedule', function ($q) use ($sectionId) {
                 $q->where('section_id', $sectionId);
             });
         }
@@ -280,9 +440,9 @@ class ReportService
         $records = $query->get();
 
         // Group by date
-        $byDate = $records->groupBy(function($record) {
+        $byDate = $records->groupBy(function ($record) {
             return $record->marked_at->format('Y-m-d');
-        })->map(function($dateRecords, $date) {
+        })->map(function ($dateRecords, $date) {
             return [
                 'date' => $date,
                 'total' => $dateRecords->count(),
@@ -316,9 +476,9 @@ class ReportService
             ->orderBy('marked_at', 'desc')
             ->get();
 
-        $filename = storage_path("app/reports/student_{$studentId}_attendance_" . time() . ".csv");
-        
-        if (!file_exists(dirname($filename))) {
+        $filename = storage_path("app/reports/student_{$studentId}_attendance_".time().'.csv');
+
+        if (! file_exists(dirname($filename))) {
             mkdir(dirname($filename), 0755, true);
         }
 

@@ -14,11 +14,15 @@ class DepartmentController extends Controller
     use RedirectsMissingAdminRecord;
     use ValidatesBulkIds;
 
-    public function index()
+    public function index(Request $request)
     {
-        $departments = Department::withCount(['users', 'courses', 'sections'])
-            ->latest()
-            ->paginate(20);
+        $query = Department::withCount(['users']);
+
+        if ($request->boolean('archived')) {
+            $query->onlyTrashed();
+        }
+
+        $departments = $query->latest()->paginate(20)->withQueryString();
 
         return view('admin.departments.index', compact('departments'));
     }
@@ -41,6 +45,13 @@ class DepartmentController extends Controller
 
     public function store(Request $request)
     {
+        if ($request->filled('code')) {
+            $request->merge(['code' => strtoupper(trim($request->input('code')))]);
+        }
+        if ($request->input('courses_number') === '' || $request->input('courses_number') === null) {
+            $request->merge(['courses_number' => null]);
+        }
+
         $validated = $request->validate([
             'code' => [
                 'required',
@@ -49,14 +60,22 @@ class DepartmentController extends Controller
                 Rule::unique('departments', 'code')->whereNull('deleted_at'),
             ],
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'status' => 'required|in:active,inactive',
+            'description' => 'nullable|string|max:500',
+            'courses_number' => 'nullable|integer|min:0|max:999999',
         ]);
 
-        Department::create($validated);
+        $validated['courses_number'] = $validated['courses_number'] ?? null;
+
+        Department::create([
+            'code' => $validated['code'],
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'courses_number' => $validated['courses_number'],
+            'status' => 'active',
+        ]);
 
         return redirect()->route('admin.departments.index')
-            ->with('success', 'Department created successfully!');
+            ->with('success', 'Department created successfully.');
     }
 
     public function edit(Department $department)
@@ -66,6 +85,13 @@ class DepartmentController extends Controller
 
     public function update(Request $request, Department $department)
     {
+        if ($request->filled('code')) {
+            $request->merge(['code' => strtoupper(trim($request->input('code')))]);
+        }
+        if ($request->input('courses_number') === '' || $request->input('courses_number') === null) {
+            $request->merge(['courses_number' => null]);
+        }
+
         $validated = $request->validate([
             'code' => [
                 'required',
@@ -74,29 +100,49 @@ class DepartmentController extends Controller
                 Rule::unique('departments', 'code')->whereNull('deleted_at')->ignore($department->id),
             ],
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'description' => 'nullable|string|max:500',
+            'courses_number' => 'nullable|integer|min:0|max:999999',
             'status' => 'required|in:active,inactive',
         ]);
+
+        $validated['courses_number'] = $validated['courses_number'] ?? null;
 
         $department->update($validated);
 
         return redirect()->route('admin.departments.index')
-            ->with('success', 'Department updated successfully!');
+            ->with('success', 'Department updated successfully.');
     }
 
-    public function destroy(Department $department)
+    public function destroy(Request $request, Department $department)
     {
+        $request->validate([
+            'current_password' => ['required', 'current_password'],
+        ]);
+
         $department->delete();
 
         return redirect()->route('admin.departments.index')
-            ->with('success', 'Department deleted successfully!');
+            ->with('success', 'Department archived successfully.');
+    }
+
+    public function restore(int $id)
+    {
+        $department = Department::onlyTrashed()->findOrFail($id);
+        $department->restore();
+
+        return redirect()->route('admin.departments.index', ['archived' => 1])
+            ->with('success', 'Department restored successfully.');
     }
 
     public function bulkDestroy(Request $request)
     {
+        $request->validate([
+            'current_password' => ['required', 'current_password'],
+        ]);
+
         $ids = $this->validatedBulkIds($request, 'departments');
         Department::whereIn('id', $ids)->get()->each->delete();
 
-        return back()->with('success', count($ids).' department(s) removed.');
+        return back()->with('success', count($ids).' department(s) archived.');
     }
 }

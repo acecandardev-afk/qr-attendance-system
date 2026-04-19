@@ -8,8 +8,8 @@
         <a href="{{ route('faculty.enrollments.index') }}" class="text-blue-600 hover:text-blue-800 text-sm">
             ← Back to enrollments
         </a>
-        <h1 class="text-3xl font-bold text-gray-800">Add Student Enrollment</h1>
-        <p class="text-gray-600 mt-2 text-sm">Choose which of <span class="font-semibold">your</span> class schedules apply to this student.</p>
+        <h1 class="text-3xl font-bold text-gray-800 mt-2">Add enrollment</h1>
+        <p class="text-gray-600 mt-2 text-sm">Choose which of <span class="font-semibold">your</span> class schedules apply to this student. Other instructors can add their schedules later by editing the same enrollment.</p>
     </div>
 
     <div class="bg-white rounded-lg shadow p-6">
@@ -19,18 +19,11 @@
             <div class="space-y-6">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Student *</label>
-                    <input
-                        type="search"
-                        id="faculty-student-search"
-                        placeholder="Search student name or ID…"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2"
-                        autocomplete="off"
-                    >
                     <select name="student_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg @error('student_id') border-red-500 @enderror">
                         <option value="">Select student</option>
                         @foreach($students as $student)
                             <option value="{{ $student->id }}" {{ old('student_id') == $student->id ? 'selected' : '' }}>
-                                {{ $student->user_id }} — {{ $student->full_name }}{{ (($student->faculty_schedule_enrolled_count ?? 0) >= ($facultyScheduleCount ?? 0) && ($facultyScheduleCount ?? 0) > 0) ? ' (Already enrolled)' : '' }}
+                                {{ $student->user_id }} — {{ $student->full_name }}
                             </option>
                         @endforeach
                     </select>
@@ -86,6 +79,7 @@
                         <option value="">Select semester</option>
                         <option value="1st Sem" {{ old('semester') == '1st Sem' ? 'selected' : '' }}>1st semester</option>
                         <option value="2nd Sem" {{ old('semester') == '2nd Sem' ? 'selected' : '' }}>2nd semester</option>
+                        <option value="Summer" {{ old('semester') == 'Summer' ? 'selected' : '' }}>Summer</option>
                     </select>
                     @error('semester')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
@@ -121,10 +115,6 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const studentSearch = document.getElementById('faculty-student-search');
-    const studentSelect = document.querySelector('select[name="student_id"]');
-    const originalOptions = studentSelect ? Array.from(studentSelect.options) : [];
-
     const sectionSelect = document.getElementById('faculty-enrollment-section-id');
     const optionsWrap = document.getElementById('faculty-enrollment-schedule-options');
     const emptySelected = document.getElementById('faculty-enrollment-empty-selected');
@@ -178,39 +168,6 @@ document.addEventListener('DOMContentLoaded', function () {
         sectionSelect.addEventListener('change', function () {
             selectedOnLoad.clear();
             renderSchedules();
-        });
-    }
-
-    if (studentSearch && studentSelect) {
-        studentSearch.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-            }
-        });
-
-        studentSearch.addEventListener('input', function () {
-            const term = (studentSearch.value || '').trim().toLowerCase();
-            const keep = originalOptions.filter(function (opt) {
-                if (!opt.value) return true;
-                return (opt.text || '').toLowerCase().includes(term);
-            });
-
-            const selected = studentSelect.value;
-            studentSelect.innerHTML = '';
-            keep.forEach(function (opt) {
-                studentSelect.appendChild(opt.cloneNode(true));
-            });
-
-            if (selected) {
-                studentSelect.value = selected;
-            } else if (term) {
-                const firstMatch = Array.from(studentSelect.options).find(function (o) {
-                    return !!o.value;
-                });
-                if (firstMatch) {
-                    studentSelect.value = firstMatch.value;
-                }
-            }
         });
     }
 

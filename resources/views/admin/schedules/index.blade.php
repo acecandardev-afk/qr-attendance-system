@@ -119,13 +119,13 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <a href="{{ route('admin.schedules.edit', $schedule->id) }}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
-                            @include('partials.confirm-action', [
+                            {!! view('partials.confirm-action', [
                                 'action' => route('admin.schedules.destroy', $schedule->id),
                                 'title' => 'Archive this class schedule?',
                                 'message' => 'It will be hidden from the timetable. Past attendance records stay in the system.',
                                 'trigger' => 'Archive',
                                 'confirm' => 'Archive',
-                            ])
+                            ])->render() !!}
                         </td>
                     </tr>
                 @empty

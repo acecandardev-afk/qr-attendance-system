@@ -7,25 +7,20 @@
     <meta name="theme-color" content="#2563eb" id="meta-theme-color">
     <title>{{ config('app.name') }} - @yield('title')</title>
 
-    {{-- Apply saved theme before paint (default: light) --}}
+    {{-- Light mode only: strip dark class and legacy theme preference --}}
     <script>
         (function () {
             try {
-                var k = 'theme_preference_v1';
-                var saved = localStorage.getItem(k);
-                var theme = saved === 'dark' || saved === 'light' ? saved : 'light';
-                var dark = theme === 'dark';
-                document.documentElement.classList.toggle('dark', dark);
+                document.documentElement.classList.remove('dark');
+                localStorage.removeItem('theme_preference_v1');
                 var meta = document.getElementById('meta-theme-color');
-                if (meta) meta.setAttribute('content', dark ? '#0f172a' : '#f8fafc');
+                if (meta) meta.setAttribute('content', '#f8fafc');
             } catch (e) { /* ignore */ }
         })();
     </script>
 
     <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    {{-- No Google Fonts here: LAN/offline classrooms hang on external CSS until timeout. --}}
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -49,7 +44,7 @@
         }
 
         body {
-            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             color: var(--app-text);
             background:
                 radial-gradient(circle at 15% 0%, rgba(15, 59, 140, 0.14), transparent 28%),
@@ -292,21 +287,6 @@
     </style>
 </head>
 <body class="bg-gray-100 antialiased @auth app-fluid @endauth">
-    <button
-        type="button"
-        id="theme-toggle"
-        class="fixed top-4 right-4 z-[100] inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white/95 p-2.5 text-amber-600 shadow-md backdrop-blur transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:border-slate-600 dark:bg-slate-800/95 dark:text-amber-400 dark:hover:bg-slate-700"
-        onclick="window.toggleTheme && window.toggleTheme()"
-        aria-label="Toggle light or dark theme"
-        title="Toggle theme"
-    >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-        </svg>
-        <svg xmlns="http://www.w3.org/2000/svg" class="hidden h-6 w-6 dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-        </svg>
-    </button>
     @auth
     <div class="app-shell flex" x-data="{ sidebarOpen: false }">
 
@@ -328,8 +308,8 @@
             <div class="sidebar-panel">
                 <div class="sidebar-top">
                     <div class="flex items-center justify-between">
-                        <a href="{{ route('dashboard') }}" class="brand-title text-xl font-extrabold text-slate-800 block truncate flex items-center gap-3">
-                            <img src="{{ asset('norsu.webp') }}" alt="Logo" class="w-5 h-5 rounded-full bg-white object-contain">
+                        <a href="{{ route('dashboard', [], false) }}" class="brand-title text-xl font-extrabold text-slate-800 block truncate flex items-center gap-3">
+                            <img src="/norsu.webp" alt="Logo" class="w-5 h-5 rounded-full bg-white object-contain">
                             <span class="truncate">{{ config('app.name') }}</span>
                         </a>
                         <button @click="sidebarOpen = false" class="md:hidden p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100" aria-label="Close menu">
@@ -343,32 +323,28 @@
 
                 <nav class="sidebar-menu space-y-1" @click="sidebarOpen = false">
                 @if(Auth::user()->isAdmin())
-                    <a href="{{ route('admin.dashboard') }}" class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">Dashboard</a>
-                    <a href="{{ route('admin.users.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">Users</a>
-                    <a href="{{ route('admin.students.index') }}" class="sidebar-link {{ request()->routeIs('admin.students.*') ? 'active' : '' }}">Students</a>
-                    <a href="{{ route('admin.departments.index') }}" class="sidebar-link {{ request()->routeIs('admin.departments.*') ? 'active' : '' }}">Departments</a>
-                    <a href="{{ route('admin.courses.index') }}" class="sidebar-link {{ request()->routeIs('admin.courses.*') ? 'active' : '' }}">Subjects</a>
-                    <a href="{{ route('admin.sections.index') }}" class="sidebar-link {{ request()->routeIs('admin.sections.*') ? 'active' : '' }}">Sections</a>
-                    <a href="{{ route('admin.schedules.index') }}" class="sidebar-link {{ request()->routeIs('admin.schedules.*') ? 'active' : '' }}">Schedules</a>
-                    <a href="{{ route('admin.enrollments.index') }}" class="sidebar-link {{ request()->routeIs('admin.enrollments.*') ? 'active' : '' }}">Enrollments</a>
-                    <a href="{{ route('admin.reports.index') }}" class="sidebar-link {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}">Reports</a>
-                    <a href="{{ route('admin.settings.attendance.edit') }}" class="sidebar-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">Settings</a>
-                    <a href="{{ route('admin.attendance-attempts.index') }}" class="sidebar-link {{ request()->routeIs('admin.attendance-attempts.*') ? 'active' : '' }}">Security</a>
+                    <a href="{{ route('dashboard', [], false) }}" class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">Dashboard</a>
+                    <a href="{{ route('admin.departments.index', [], false) }}" class="sidebar-link {{ request()->routeIs('admin.departments.*') ? 'active' : '' }}">Departments</a>
+                    <a href="{{ route('admin.faculties.index', [], false) }}" class="sidebar-link {{ request()->routeIs('admin.faculties.*') ? 'active' : '' }}">Faculty</a>
+                    <a href="{{ route('admin.students.index', [], false) }}" class="sidebar-link {{ request()->routeIs('admin.students.*') ? 'active' : '' }}">Students</a>
+                    <a href="{{ route('admin.settings.account.edit', [], false) }}" class="sidebar-link {{ request()->routeIs('admin.settings.account.*') ? 'active' : '' }}">Settings</a>
+                    <a href="{{ route('admin.attendance-attempts.index', [], false) }}" class="sidebar-link {{ request()->routeIs('admin.attendance-attempts.*') ? 'active' : '' }}">Security</a>
                 @elseif(Auth::user()->isFaculty())
-                    <a href="{{ route('dashboard') }}" class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">Dashboard</a>
-                    <a href="{{ route('faculty.sessions.index') }}" class="sidebar-link {{ request()->routeIs('faculty.sessions.*') ? 'active' : '' }}">Schedules</a>
-                    <a href="{{ route('faculty.enrollments.index') }}" class="sidebar-link {{ request()->routeIs('faculty.enrollments.*') ? 'active' : '' }}">Enrollments</a>
-                    <a href="{{ route('faculty.reports.index') }}" class="sidebar-link {{ request()->routeIs('faculty.reports.*') ? 'active' : '' }}">Reports</a>
+                    <a href="{{ route('faculty.profile', [], false) }}" class="sidebar-link {{ request()->routeIs('faculty.profile') ? 'active' : '' }}">My Profile</a>
+                    <a href="{{ route('faculty.sessions.index', [], false) }}" class="sidebar-link {{ request()->routeIs('faculty.sessions.*', 'faculty.subjects.*', 'faculty.classes.*', 'faculty.settings.class-rules.*', 'faculty.enrollments.*', 'faculty.schedules.students-for-enrollment', 'faculty.schedules.enrollments.bulk') ? 'active' : '' }}">Classes</a>
+                    <a href="{{ route('faculty.reports.index', [], false) }}" class="sidebar-link {{ request()->routeIs('faculty.reports.*') ? 'active' : '' }}">History</a>
                 @elseif(Auth::user()->isStudent())
-                    <a href="{{ route('dashboard') }}" class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">Dashboard</a>
-                    <a href="{{ route('student.attendance.index') }}" class="sidebar-link {{ request()->routeIs('student.attendance.index') ? 'active' : '' }}">Scan QR</a>
-                    <a href="{{ route('student.attendance.history') }}" class="sidebar-link {{ request()->routeIs('student.attendance.history') ? 'active' : '' }}">History</a>
+                    <a href="{{ route('dashboard', [], false) }}" class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">Dashboard</a>
+                    <a href="{{ route('student.classes.browse', [], false) }}" class="sidebar-link {{ request()->routeIs('student.classes.browse') ? 'active' : '' }}">Classes you can join</a>
+                    <a href="{{ route('student.attendance.index', [], false) }}" class="sidebar-link {{ request()->routeIs('student.attendance.index') ? 'active' : '' }}">Scan QR</a>
+                    <a href="{{ route('student.attendance.history', [], false) }}" class="sidebar-link {{ request()->routeIs('student.attendance.history') ? 'active' : '' }}">History</a>
+                    <a href="{{ route('settings.password.edit', [], false) }}" class="sidebar-link {{ request()->routeIs('settings.password.*') ? 'active' : '' }}">Change password</a>
                 @endif
                 </nav>
 
                 <div class="sidebar-bottom mt-auto">
                     <p class="text-sm font-semibold text-slate-700 truncate mb-2">{{ Auth::user()->full_name }}</p>
-                    <form method="POST" action="{{ route('logout') }}" class="mt-2">
+                    <form method="POST" action="{{ route('logout', [], false) }}" class="mt-2">
                         @csrf
                         <button type="submit" class="sidebar-logout">
                             Logout
@@ -381,9 +357,9 @@
         <div class="app-content flex-1">
     @endauth
 
-    <!-- Global flash (one message: error first, then success, then status — avoids duplicate greens) -->
+    <!-- Global flash toasts (fixed; auto-dismiss after 3.5s). Error > success > status. -->
     @if(session('error') || session('success') || session('status'))
-        <div class="fixed inset-x-0 top-4 flex justify-center z-50 px-4 pointer-events-none" x-data="{ show: true }" x-show="show" x-transition>
+        <div class="fixed inset-x-0 top-4 flex justify-center z-50 px-4 pointer-events-none" x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 3500)">
             <div class="max-w-lg w-full pointer-events-auto">
                 @if(session('error'))
                     <div class="rounded-xl bg-red-100 border border-red-300 text-red-900 px-4 py-3 text-sm shadow-lg flex items-center gap-3">
@@ -407,6 +383,16 @@
 
     <!-- Main Content -->
     <main class="py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
+        @if($errors->any() && !session('error'))
+            <div class="max-w-3xl mx-auto mb-4 rounded-xl bg-red-50 border border-red-200 text-red-800 px-4 py-3 text-sm" role="alert"
+                 x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 3500)">
+                <ul class="list-disc list-inside space-y-1">
+                    @foreach($errors->all() as $err)
+                        <li>{{ $err }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
         @yield('content')
     </main>
     @auth
@@ -414,6 +400,7 @@
     </div>
     @endauth
 
+    @auth
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
@@ -423,6 +410,7 @@
             });
         }
     </script>
+    @endauth
 
     @stack('scripts')
 </body>

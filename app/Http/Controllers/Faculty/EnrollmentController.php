@@ -8,7 +8,6 @@ use App\Models\Enrollment;
 use App\Models\Schedule;
 use App\Models\Section;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -18,13 +17,6 @@ class EnrollmentController extends Controller
     use ManagesEnrollmentSchedules;
 
     /**
-     * Section IDs where this faculty has at least one active schedule.
-     *
-     * @return array<int, int>
-     */
-    /**
-     * Students a faculty member may enroll: same department, or already on their section rosters.
-     *
      * @param  array<int, int>  $sectionIds
      * @return \Illuminate\Database\Eloquent\Collection<int, User>
      */
@@ -66,158 +58,82 @@ class EnrollmentController extends Controller
             ->all();
     }
 
-    public function index(Request $request)
+    protected function facultyOwnsEnrollmentRequest(Enrollment $enrollment, User $faculty): bool
+    {
+        return $enrollment->schedules()->where('faculty_id', $faculty->id)->exists();
+    }
+
+    public function index()
     {
         $faculty = Auth::user();
         $sectionIds = $this->facultySectionIds($faculty);
 
         if ($sectionIds === []) {
             return view('faculty.enrollments.index', [
-                'enrollments' => Enrollment::query()->whereRaw('1 = 0')->paginate(20),
-                'sections' => collect(),
+                'pending' => collect(),
+                'mySchedules' => collect(),
                 'noTeachingSections' => true,
             ]);
         }
 
-        $query = Enrollment::with([
+        $pending = Enrollment::with([
             'student' => fn ($q) => $q->withTrashed(),
             'section' => fn ($q) => $q->withTrashed(),
             'schedules.course',
         ])
+            ->pending()
             ->whereIn('section_id', $sectionIds)
-            ->whereHas('schedules', function ($q) use ($faculty) {
-                $q->where('faculty_id', $faculty->id);
-            });
+            ->whereHas('schedules', fn ($q) => $q->where('faculty_id', $faculty->id))
+            ->latest()
+            ->get();
 
-        if ($request->filled('section_id')) {
-            if (in_array((int) $request->section_id, $sectionIds, true)) {
-                $query->where('section_id', $request->section_id);
-            }
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('q')) {
-            $term = '%'.str_replace(['%', '_'], ['\\%', '\\_'], trim($request->q)).'%';
-            $query->whereHas('student', function ($q) use ($term) {
-                $q->where('user_id', 'like', $term)
-                    ->orWhere('first_name', 'like', $term)
-                    ->orWhere('last_name', 'like', $term)
-                    ->orWhereRaw("trim(concat(coalesce(first_name,''),' ',coalesce(last_name,''))) like ?", [$term]);
-            });
-        }
-
-        $enrollments = $query->latest()->paginate(20)->withQueryString();
-        $sections = Section::active()->whereIn('id', $sectionIds)->orderBy('name')->get();
-
-        return view('faculty.enrollments.index', compact('enrollments', 'sections'));
-    }
-
-    public function create()
-    {
-        $faculty = Auth::user();
-        $sectionIds = $this->facultySectionIds($faculty);
-
-        $facultyScheduleIds = Schedule::query()
+        $mySchedules = Schedule::query()
             ->where('faculty_id', $faculty->id)
             ->where('status', 'active')
-            ->pluck('id')
-            ->all();
-
-        $facultyScheduleCount = count($facultyScheduleIds);
-
-        if ($sectionIds === []) {
-            return redirect()->route('faculty.enrollments.index')
-                ->with('error', 'You have no class schedules yet. Ask an administrator to assign you to schedules first.');
-        }
-
-        $sections = Section::active()->orderBy('name')->get();
-
-        $facultyScheduleCountSubquery = DB::table('enrollments')
-            ->join('enrollment_schedule', 'enrollments.id', '=', 'enrollment_schedule.enrollment_id')
-            ->whereColumn('enrollments.student_id', 'users.id')
-            ->whereNull('enrollments.deleted_at')
-            ->where('enrollments.status', 'enrolled')
-            ->whereIn('enrollment_schedule.schedule_id', $facultyScheduleIds)
-            ->selectRaw('count(distinct enrollment_schedule.schedule_id)');
-
-        $students = User::query()
-            ->where('role', 'student')
-            ->where('status', 'active')
-            ->whereNull('deleted_at')
-            ->select('users.*')
-            ->when($facultyScheduleCount > 0, function ($q) use ($facultyScheduleCountSubquery) {
-                $q->selectSub($facultyScheduleCountSubquery, 'faculty_schedule_enrolled_count');
-            })
-            ->when($facultyScheduleCount === 0, function ($q) {
-                $q->selectRaw('0 as faculty_schedule_enrolled_count');
-            })
-            ->orderBy('last_name')
-            ->orderBy('first_name')
+            ->with(['course', 'section'])
+            ->orderByDayPattern()
+            ->orderBy('start_time')
             ->get();
-        $schedulesBySection = $this->schedulesGroupedForFacultySections($faculty, $sections);
 
-        return view('faculty.enrollments.create', compact('students', 'sections', 'schedulesBySection', 'facultyScheduleCount'));
+        $noTeachingSections = false;
+
+        return view('faculty.enrollments.index', compact('pending', 'mySchedules', 'noTeachingSections'));
     }
 
-    public function store(Request $request)
+    public function approve(string $enrollment)
     {
         $faculty = Auth::user();
-        $sectionIds = $this->facultySectionIds($faculty);
+        $enrollment = Enrollment::with('schedules')->findOrFail($enrollment);
 
-        $validated = $request->validate([
-            'student_id' => 'required|exists:users,id',
-            'section_id' => 'required|exists:sections,id',
-            'school_year' => 'required|string|max:255',
-            'semester' => ['required', Rule::in(Enrollment::SEMESTERS)],
-            'status' => 'required|in:enrolled,dropped,completed',
-            'schedule_ids' => 'required|array|min:1',
-            'schedule_ids.*' => 'integer|exists:schedules,id',
-        ]);
-
-        $studentOk = User::query()
-            ->where('id', $validated['student_id'])
-            ->where('role', 'student')
-            ->where('status', 'active')
-            ->exists();
-        if (! $studentOk) {
-            return back()->withInput()->with('error', 'Please choose an active student account.');
+        if (! $enrollment->isPending()) {
+            return back()->with('error', 'This request is no longer waiting for you.');
         }
 
-        $myScheduleIds = $this->validatedScheduleIdsForFacultySection(
-            $faculty,
-            (int) $validated['section_id'],
-            $request->input('schedule_ids', [])
-        );
-        if ($myScheduleIds === null) {
-            return back()->withInput()->with('error', 'Choose only your own class schedules for this section.');
+        if (! $this->facultyOwnsEnrollmentRequest($enrollment, $faculty)) {
+            abort(403);
         }
 
-        if ($myScheduleIds === []) {
-            return back()->withInput()->with('error', 'Please select at least one of your class schedules for the chosen section.');
+        $enrollment->update(['status' => Enrollment::STATUS_ENROLLED]);
+
+        return back()->with('success', 'The student has been added to your class.');
+    }
+
+    public function decline(string $enrollment)
+    {
+        $faculty = Auth::user();
+        $enrollment = Enrollment::with('schedules')->findOrFail($enrollment);
+
+        if (! $enrollment->isPending()) {
+            return back()->with('error', 'This request is no longer waiting for you.');
         }
 
-        if ($this->enrollmentDuplicateExists(
-            (int) $validated['student_id'],
-            (int) $validated['section_id'],
-            $validated['school_year'],
-            $validated['semester'],
-            $myScheduleIds,
-        )) {
-            return back()->withInput()->with(
-                'error',
-                'This student already has an enrollment for that section and term with the same class schedule(s). Add another enrollment with a different day/time or subject, or edit the existing one.'
-            );
+        if (! $this->facultyOwnsEnrollmentRequest($enrollment, $faculty)) {
+            abort(403);
         }
 
-        $enrollment = Enrollment::create($validated);
+        $enrollment->delete();
 
-        $enrollment->schedules()->sync($myScheduleIds);
-
-        return redirect()->route('faculty.enrollments.index')
-            ->with('success', 'Enrollment saved. Each student can have different class schedules.');
+        return back()->with('success', 'You chose not to add this student. They can send another request if they need to.');
     }
 
     public function edit(string $enrollment)
@@ -226,6 +142,11 @@ class EnrollmentController extends Controller
         $sectionIds = $this->facultySectionIds($faculty);
 
         $enrollment = Enrollment::withTrashed()->with(['schedules.course'])->findOrFail($enrollment);
+
+        if ($enrollment->isPending()) {
+            return redirect()->route('faculty.enrollments.index')
+                ->with('error', 'Use Approve or Not now on the main page for requests that are still waiting.');
+        }
 
         if (! in_array((int) $enrollment->section_id, $sectionIds, true)) {
             abort(403, 'You can only edit enrollments for sections where you teach.');
@@ -244,6 +165,11 @@ class EnrollmentController extends Controller
         $sectionIds = $this->facultySectionIds($faculty);
 
         $enrollment = Enrollment::withTrashed()->findOrFail($enrollment);
+
+        if ($enrollment->isPending()) {
+            return redirect()->route('faculty.enrollments.index')
+                ->with('error', 'You cannot change a request that is still waiting. Approve or decline it first.');
+        }
 
         if (! in_array((int) $enrollment->section_id, $sectionIds, true)) {
             abort(403, 'You can only edit enrollments for sections where you teach.');
@@ -328,6 +254,6 @@ class EnrollmentController extends Controller
         $enrollment->delete();
 
         return redirect()->route('faculty.enrollments.index')
-            ->with('success', 'Enrollment removed.');
+            ->with('success', 'The student was removed from this class list.');
     }
 }

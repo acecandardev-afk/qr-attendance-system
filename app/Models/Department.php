@@ -14,7 +14,12 @@ class Department extends Model
         'code',
         'name',
         'description',
+        'courses_number',
         'status',
+    ];
+
+    protected $casts = [
+        'courses_number' => 'integer',
     ];
 
     // Relationships

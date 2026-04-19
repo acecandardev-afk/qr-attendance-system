@@ -11,7 +11,7 @@ class Schedule extends Model
 {
     use HasFactory, SoftDeletes;
 
-    public const DAY_PATTERNS = ['MWF', 'TTH'];
+    public const DAY_PATTERNS = ['MWF', 'TTH', 'SAT', 'SUN'];
 
     protected $fillable = [
         'course_id',
@@ -43,6 +43,8 @@ class Schedule extends Model
         return match ($d) {
             'MWF', 'Mon', 'Monday', 'Wed', 'Wednesday', 'Fri', 'Friday' => 'MWF',
             'TTH', 'Tue', 'Tuesday', 'Thu', 'Thursday' => 'TTH',
+            'SAT', 'Sat', 'Saturday' => 'SAT',
+            'SUN', 'Sun', 'Sunday' => 'SUN',
             default => $d,
         };
     }
@@ -57,7 +59,9 @@ class Schedule extends Model
         return match ($p) {
             'MWF' => ['MWF', 'Monday', 'Wednesday', 'Friday'],
             'TTH' => ['TTH', 'Tuesday', 'Thursday'],
-            default => [$pattern],
+            'SAT' => ['SAT', 'Saturday'],
+            'SUN' => ['SUN', 'Sunday'],
+            default => [$p],
         };
     }
 
@@ -103,6 +107,10 @@ class Schedule extends Model
         return $query->orderByRaw("CASE day_of_week
             WHEN 'MWF' THEN 1
             WHEN 'TTH' THEN 2
+            WHEN 'SAT' THEN 3
+            WHEN 'SUN' THEN 4
+            WHEN 'Saturday' THEN 3
+            WHEN 'Sunday' THEN 4
             ELSE 99 END");
     }
 
@@ -137,6 +145,12 @@ class Schedule extends Model
         if (in_array($d, [2, 4], true)) {
             $patterns[] = 'TTH';
         }
+        if ($date->isSaturday()) {
+            $patterns[] = 'SAT';
+        }
+        if ($date->isSunday()) {
+            $patterns[] = 'SUN';
+        }
 
         return $patterns;
     }
@@ -146,6 +160,123 @@ class Schedule extends Model
         $patterns = self::dayPatternsForDate($date);
 
         return $patterns[0] ?? 'MWF';
+    }
+
+    /**
+     * Carbon/PHP weekday: 0 = Sunday … 6 = Saturday.
+     *
+     * @return array<int, int>
+     */
+    public static function weekdayIndexesForPattern(string $pattern): array
+    {
+        $p = self::normalizeDayPattern($pattern) ?? $pattern;
+
+        return match ($p) {
+            'MWF' => [1, 3, 5],
+            'TTH' => [2, 4],
+            'SAT' => [6],
+            'SUN' => [0],
+            default => [],
+        };
+    }
+
+    public static function hmToMinutes(string $hm): int
+    {
+        $c = Carbon::createFromFormat('H:i', trim($hm));
+
+        return $c->hour * 60 + $c->minute;
+    }
+
+    /**
+     * Minute spans per calendar weekday for this class pattern and clock times.
+     * End time is treated as inclusive on the minute grid; each span is half-open [a, b) with
+     * b = endMinute + 1 so another class may start the minute after the inclusive end
+     * (e.g. ends 12:00 → next may start 12:01). Overnight slots split across weekdays.
+     *
+     * @return list<array{d: int, a: int, b: int}>
+     */
+    public static function minuteSegmentsForDayPattern(string $pattern, string $startHm, string $endHm): array
+    {
+        $startMin = self::hmToMinutes($startHm);
+        $endMin = self::hmToMinutes($endHm);
+        $days = self::weekdayIndexesForPattern($pattern);
+        $out = [];
+        foreach ($days as $d) {
+            if ($endMin > $startMin) {
+                $out[] = ['d' => $d, 'a' => $startMin, 'b' => $endMin + 1];
+            } else {
+                $out[] = ['d' => $d, 'a' => $startMin, 'b' => 1440];
+                $out[] = ['d' => ($d + 1) % 7, 'a' => 0, 'b' => $endMin + 1];
+            }
+        }
+
+        return $out;
+    }
+
+    /** Whether two half-open same-day intervals [a1,b1) and [a2,b2) overlap in time. */
+    public static function sameDayHalfOpenIntervalsOverlap(int $a1, int $b1, int $a2, int $b2): bool
+    {
+        return max($a1, $a2) < min($b1, $b2);
+    }
+
+    /**
+     * @param  list<array{d: int, a: int, b: int}>  $segmentsA
+     * @param  list<array{d: int, a: int, b: int}>  $segmentsB
+     */
+    public static function minuteSegmentListsConflict(array $segmentsA, array $segmentsB): bool
+    {
+        foreach ($segmentsA as $s1) {
+            foreach ($segmentsB as $s2) {
+                if ($s1['d'] !== $s2['d']) {
+                    continue;
+                }
+                if (self::sameDayHalfOpenIntervalsOverlap($s1['a'], $s1['b'], $s2['a'], $s2['b'])) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * True if an active schedule in this section already overlaps this slot on any shared
+     * weekday (end 12:00 and start 12:00 conflict; start 12:01 is allowed).
+     */
+    public static function sectionHasScheduleTimeConflict(
+        int $sectionId,
+        string $dayPattern,
+        string $startTimeHhMm,
+        string $endTimeHhMm,
+        ?int $ignoreScheduleId = null,
+    ): bool {
+        $proposed = self::minuteSegmentsForDayPattern($dayPattern, $startTimeHhMm, $endTimeHhMm);
+
+        $q = self::query()
+            ->where('section_id', $sectionId)
+            ->where('status', 'active')
+            ->whereNull('deleted_at');
+
+        if ($ignoreScheduleId !== null) {
+            $q->where('id', '!=', $ignoreScheduleId);
+        }
+
+        foreach ($q->get() as $other) {
+            $rawDay = $other->getRawOriginal('day_of_week');
+            if ($rawDay === null) {
+                $rawDay = $other->day_of_week;
+            }
+            $existing = self::minuteSegmentsForDayPattern(
+                (string) $rawDay,
+                $other->start_time->format('H:i'),
+                $other->end_time->format('H:i'),
+            );
+            if (self::minuteSegmentListsConflict($proposed, $existing)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function scopeToday($query)
@@ -183,8 +314,12 @@ class Schedule extends Model
         }
 
         $now = Carbon::now();
-        $startTime = Carbon::parse($this->start_time)->subMinutes($toleranceMinutes);
-        $endTime = Carbon::parse($this->end_time);
+        $startTime = Carbon::parse($this->start_time)->setDateFrom($now)->subMinutes($toleranceMinutes);
+        $endTime = Carbon::parse($this->end_time)->setDateFrom($now);
+
+        if ($endTime->lessThanOrEqualTo($startTime)) {
+            $endTime->addDay();
+        }
 
         return $now->between($startTime, $endTime);
     }
@@ -197,6 +332,8 @@ class Schedule extends Model
 
     public function getFullScheduleAttribute()
     {
-        return "{$this->day_of_week} {$this->time_range} - {$this->room}";
+        $base = "{$this->day_of_week} {$this->time_range}";
+
+        return filled($this->room) ? "{$base} - {$this->room}" : $base;
     }
 }

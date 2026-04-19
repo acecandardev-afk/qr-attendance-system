@@ -99,6 +99,6 @@ Set these in **Project Settings -> Environment Variables**:
 ### Important notes
 
 - Vercel file storage is ephemeral. Do not rely on local disk for permanent uploads.
-- Use a hosted MySQL database (PlanetScale, Railway, RDS, etc.) for production data.
+- Use a hosted MySQL or PostgreSQL database for production data if you deploy beyond localhost.
 - After setting env vars, redeploy from Vercel dashboard.
 

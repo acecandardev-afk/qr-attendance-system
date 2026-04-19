@@ -14,7 +14,7 @@
                 <p class="text-gray-500 mt-2 text-sm">Choose a strong password for your account.</p>
             </div>
 
-            <form method="POST" action="{{ route('password.update') }}" class="space-y-5">
+            <form method="POST" action="{{ route('password.update', [], false) }}" class="space-y-5">
                 @csrf
                 <input type="hidden" name="token" value="{{ $request->route('token') }}">
 
@@ -70,7 +70,7 @@
             </form>
 
             <p class="text-center text-sm text-gray-600 mt-6">
-                <a href="{{ route('login') }}" class="text-blue-600 hover:underline font-medium">Back to sign in</a>
+                <a href="{{ route('login', [], false) }}" class="text-blue-600 hover:underline font-medium">Back to sign in</a>
             </p>
         </div>
     </div>

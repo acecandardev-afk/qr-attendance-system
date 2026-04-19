@@ -91,13 +91,13 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <a href="{{ route('admin.courses.edit', $course->id) }}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
-                            @include('partials.confirm-action', [
+                            {!! view('partials.confirm-action', [
                                 'action' => route('admin.courses.destroy', $course->id),
                                 'title' => 'Delete this course?',
                                 'message' => 'Schedules and records that depend on this course may be affected.',
                                 'trigger' => 'Delete',
                                 'confirm' => 'Delete',
-                            ])
+                            ])->render() !!}
                         </td>
                     </tr>
                 @empty

@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
+use App\Services\AttendanceSessionStatisticsService;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 use Illuminate\Support\Str;
 
 class AttendanceSession extends Model
@@ -68,13 +69,13 @@ class AttendanceSession extends Model
     public function scopeNotExpired($query)
     {
         return $query->where('expires_at', '>', Carbon::now())
-                    ->where('status', 'active');
+            ->where('status', 'active');
     }
 
     // Helper Methods
     public function isActive()
     {
-        return $this->status === 'active' && !$this->isExpired();
+        return $this->status === 'active' && ! $this->isExpired();
     }
 
     public function isExpired()
@@ -89,7 +90,7 @@ class AttendanceSession extends Model
 
     public function canAcceptAttendance()
     {
-        return $this->isActive() && !$this->isExpired() && !$this->isClosed();
+        return $this->isActive() && ! $this->isExpired() && ! $this->isClosed();
     }
 
     public function getRemainingTimeAttribute()
@@ -120,6 +121,16 @@ class AttendanceSession extends Model
             ->where('status', 'late')
             ->distinct('student_id')
             ->count('student_id');
+    }
+
+    public function getEnrolledCountAttribute(): int
+    {
+        return app(AttendanceSessionStatisticsService::class)->enrolledCount($this);
+    }
+
+    public function getAbsentCountAttribute(): int
+    {
+        return app(AttendanceSessionStatisticsService::class)->absentDisplayCount($this);
     }
 
     // Static Methods

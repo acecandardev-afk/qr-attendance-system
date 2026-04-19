@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Enrollment;
 use App\Models\Section;
 use App\Models\User;
+use App\Support\NameConcatSql;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -44,7 +45,7 @@ class EnrollmentController extends Controller
                 $q->where('user_id', 'like', $term)
                     ->orWhere('first_name', 'like', $term)
                     ->orWhere('last_name', 'like', $term)
-                    ->orWhereRaw("trim(concat(coalesce(first_name,''),' ',coalesce(last_name,''))) like ?", [$term]);
+                    ->orWhereRaw(NameConcatSql::firstSpaceLastTrimmed().' like ?', [$term]);
             });
         }
 

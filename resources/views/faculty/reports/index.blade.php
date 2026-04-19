@@ -66,7 +66,7 @@
     </div>
 
     <!-- Summary Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
         <div class="bg-white rounded-lg shadow p-4">
             <p class="text-xs uppercase text-gray-500">Total Classes</p>
             <p class="text-2xl font-bold text-gray-800 mt-1">{{ $data['total_sessions'] }}</p>
@@ -80,8 +80,26 @@
             <p class="text-2xl font-bold text-gray-700 mt-1">{{ $data['closed_sessions'] }}</p>
         </div>
         <div class="bg-white rounded-lg shadow p-4">
-            <p class="text-xs uppercase text-gray-500">Total Attendance</p>
+            <p class="text-xs uppercase text-gray-500">Expired</p>
+            <p class="text-2xl font-bold text-gray-600 mt-1">{{ $data['expired_sessions'] ?? 0 }}</p>
+        </div>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-4">
+            <p class="text-xs uppercase text-gray-500">Records (rows)</p>
             <p class="text-2xl font-bold text-blue-600 mt-1">{{ $data['total_attendance_records'] }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <p class="text-xs uppercase text-gray-500">Present</p>
+            <p class="text-2xl font-bold text-green-600 mt-1">{{ $data['total_present'] ?? 0 }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <p class="text-xs uppercase text-gray-500">Late</p>
+            <p class="text-2xl font-bold text-yellow-600 mt-1">{{ $data['total_late'] ?? 0 }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <p class="text-xs uppercase text-gray-500">Absent</p>
+            <p class="text-2xl font-bold text-red-600 mt-1">{{ $data['total_absent'] ?? 0 }}</p>
         </div>
     </div>
 
@@ -111,6 +129,9 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Classes</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Attendance</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg per Session</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Present</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Late</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Absent</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -122,6 +143,9 @@
                                 <td class="px-6 py-4 text-gray-900">{{ $courseData['total_sessions'] }}</td>
                                 <td class="px-6 py-4 text-gray-900">{{ $courseData['total_attendance_records'] }}</td>
                                 <td class="px-6 py-4 font-semibold text-gray-900">{{ $courseData['average_attendance_per_session'] }}</td>
+                                <td class="px-6 py-4 text-green-700">{{ $courseData['present'] ?? 0 }}</td>
+                                <td class="px-6 py-4 text-yellow-700">{{ $courseData['late'] ?? 0 }}</td>
+                                <td class="px-6 py-4 text-red-700">{{ $courseData['absent'] ?? 0 }}</td>
                             </tr>
                         @endforeach
                     </tbody>

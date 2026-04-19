@@ -18,12 +18,33 @@ class AttendanceController extends Controller
     /**
      * Show QR scanner page
      */
-    public function index()
+    public function index(Request $request)
     {
         $student = Auth::user();
         $summary = $this->attendanceService->getStudentSummary($student);
 
-        return view('student.attendance.index', compact('summary'));
+        $secureScannerUrl = null;
+        if (! $request->secure()) {
+            $root = rtrim((string) config('app.url'), '/');
+            if (str_starts_with($root, 'https://')) {
+                $secureScannerUrl = $root.'/'.ltrim($request->path(), '/');
+                if ($request->getQueryString()) {
+                    $secureScannerUrl .= '?'.$request->getQueryString();
+                }
+            }
+            // Class Wi-Fi: student opened http://192.168.x.x:8000 but .env still says http://localhost — still offer HTTPS (Caddy).
+            if ($secureScannerUrl === null) {
+                $httpsPort = (string) config('app.lan_https_port', '9443');
+                $host = $request->getHost();
+                if (filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                    $secureScannerUrl = 'https://'.$host.':'.$httpsPort.$request->getRequestUri();
+                } elseif (in_array($host, ['127.0.0.1', 'localhost', '::1'], true)) {
+                    $secureScannerUrl = 'https://127.0.0.1:'.$httpsPort.$request->getRequestUri();
+                }
+            }
+        }
+
+        return view('student.attendance.index', compact('summary', 'secureScannerUrl'));
     }
 
     /**

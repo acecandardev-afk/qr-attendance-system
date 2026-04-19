@@ -27,6 +27,10 @@ class User extends Authenticatable implements CanResetPasswordContract
         'age',
         'birthday',
         'department_id',
+        'employment_status',
+        'check_in_code_valid_minutes',
+        'late_after_minutes',
+        'absent_after_minutes',
         'status',
         'email_verified_at',
     ];
@@ -40,6 +44,9 @@ class User extends Authenticatable implements CanResetPasswordContract
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'birthday' => 'date',
+        'check_in_code_valid_minutes' => 'integer',
+        'late_after_minutes' => 'integer',
+        'absent_after_minutes' => 'integer',
     ];
 
     // Relationships
@@ -82,6 +89,21 @@ class User extends Authenticatable implements CanResetPasswordContract
     public function getFullNameWithoutMiddleAttribute()
     {
         return trim("{$this->first_name} {$this->last_name}");
+    }
+
+    public function getMiddleInitialAttribute(): string
+    {
+        $m = trim((string) $this->middle_name);
+
+        return $m !== '' ? strtoupper(mb_substr($m, 0, 1)).'.' : '—';
+    }
+
+    /**
+     * Friendly name for students (no email) — e.g. class lists.
+     */
+    public function getTeacherDisplayNameAttribute(): string
+    {
+        return $this->full_name_without_middle;
     }
 
     // Scopes

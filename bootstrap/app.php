@@ -9,17 +9,20 @@ use App\Models\Section;
 use App\Models\User;
 use App\Support\AttendanceConfig;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\LostConnectionDetector;
 use Illuminate\Database\QueryException;
 use Illuminate\Encryption\MissingAppKeyException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\ViewException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -29,8 +32,17 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Trust all proxies so Laravel generates correct HTTPS URLs behind Railway's reverse proxy
-        $middleware->trustProxies(at: '*');
+        // Only trust loopback — Caddy on this PC forwards from 127.0.0.1. Using '*' made every
+        // browser the "proxy", so spoofed X-Forwarded-Proto could mark http:// LAN as "secure",
+        // session cookies broke on HTTP, and login returned 419 Page Expired.
+        $proxyList = env('TRUSTED_PROXIES') ?: '127.0.0.1,::1';
+        $middleware->trustProxies(at: array_values(array_filter(array_map('trim', explode(',', $proxyList)))));
+        // After TrustProxies: use X-Forwarded-Host from Caddy so redirects use https://LAN:9443
+        // instead of APP_URL (e.g. http://localhost). See Caddyfile header_up X-Forwarded-*.
+        $middleware->append(\App\Http\Middleware\UseForwardedHostAsUrlRoot::class);
+        // After TrustProxies so $request->secure() sees X-Forwarded-Proto from Caddy; before
+        // the web group's StartSession (global stack runs first). Appended, not prepended.
+        $middleware->append(\App\Http\Middleware\ConfigureSessionSecureCookie::class);
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
             'active' => \App\Http\Middleware\EnsureUserIsActive::class,
@@ -47,6 +59,38 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions) {
         $isStudentScan = fn (Request $request) => $request->is('student/attendance/scan');
 
+        $friendlyMissingDataMessage = 'Something on this page is incomplete or no longer available. Please go back or open another section.';
+
+        $redirectFriendlyMissingData = function (Request $request) use ($friendlyMissingDataMessage, $isStudentScan) {
+            if ($isStudentScan($request)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'We could not complete this action. Please try again or ask your instructor for help.',
+                ], 500);
+            }
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $friendlyMissingDataMessage], 500);
+            }
+            if (Auth::check()) {
+                return redirect()->to(route('dashboard', [], false))->with('error', $friendlyMissingDataMessage);
+            }
+
+            return redirect()->to('/')->with('error', $friendlyMissingDataMessage);
+        };
+
+        $isLikelyNullReferenceError = static function (\Throwable $e): bool {
+            $msg = $e->getMessage();
+            if ($e instanceof \ErrorException) {
+                return (bool) preg_match('/Attempt to read property\s+("\w+"|\w+)\s+on\s+null/i', $msg);
+            }
+            if ($e instanceof \TypeError) {
+                return (bool) preg_match('/Cannot access property|on null/i', $msg)
+                    && str_contains($msg, 'null');
+            }
+
+            return false;
+        };
+
         $renderSetupRequired = function (string $title, array $bullets, int $status = 503) {
             $items = implode('', array_map(
                 fn ($b) => '<li style="margin:6px 0;">'.htmlspecialchars($b, ENT_QUOTES, 'UTF-8').'</li>',
@@ -61,7 +105,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 '<div style="max-width:820px;margin:0 auto;border:1px solid rgba(148,163,184,.25);background:rgba(15,23,42,.9);border-radius:16px;padding:18px 18px 14px;">'.
                 '<div style="font-size:14px;opacity:.9;margin-bottom:8px;">QR Attendance System</div>'.
                 '<h1 style="font-size:22px;margin:0 0 10px;">'.htmlspecialchars($title, ENT_QUOTES, 'UTF-8').'</h1>'.
-                '<p style="margin:0 0 12px;opacity:.9;">This deployment is missing required configuration. In your host&apos;s dashboard (e.g. Railway, Render, or Fly.io), open <strong>Variables</strong> / <strong>Environment</strong>, set the values below, then redeploy.</p>'.
+                '<p style="margin:0 0 12px;opacity:.9;">The database is not reachable or is not set up yet. On your own machine, check the <strong>.env</strong> file. On a server, check environment variables, then restart the app.</p>'.
                 '<ul style="margin:0 0 10px;padding-left:18px;">'.$items.'</ul>'.
                 '<p style="margin:0;opacity:.75;font-size:13px;">Once configured, refresh this page.</p>'.
                 '</div></body></html>',
@@ -100,26 +144,84 @@ return Application::configure(basePath: dirname(__DIR__))
             AttendanceSession::class => 'faculty.sessions.index',
         ];
 
-        $exceptions->renderable(function (ModelNotFoundException $e, Request $request) use ($adminModelNotFoundRedirects) {
+        $exceptions->renderable(function (ModelNotFoundException $e, Request $request) use ($adminModelNotFoundRedirects, $isStudentScan) {
+            if ($isStudentScan($request)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This scan could not be processed. Please try again or ask your instructor for help.',
+                ], 404);
+            }
+
             if ($request->expectsJson()) {
-                return null;
+                return response()->json([
+                    'message' => 'The item you requested is not available.',
+                ], 404);
             }
 
             $route = $adminModelNotFoundRedirects[$e->getModel()] ?? null;
-            if ($route === null) {
+            if ($route !== null) {
+                if ($e->getModel() === AttendanceSession::class && $request->is('faculty/*')) {
+                    return redirect()->route($route)
+                        ->with('error', 'This item is no longer available or has been removed.');
+                }
+                if ($e->getModel() !== AttendanceSession::class && $request->is('admin/*')) {
+                    return redirect()->route($route)
+                        ->with('error', 'This item is no longer available or has been removed.');
+                }
+            }
+
+            if (Auth::check()) {
+                return redirect()->to(route('dashboard', [], false))
+                    ->with('error', 'That page or record is not available. It may have been removed.');
+            }
+
+            return redirect()->to('/')
+                ->with('error', 'That page is not available.');
+        });
+
+        $exceptions->renderable(function (NotFoundHttpException $e, Request $request) use ($isStudentScan) {
+            if ($isStudentScan($request)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This scan could not be processed. Please try again or ask your instructor for help.',
+                ], 404);
+            }
+
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Not found.'], 404);
+            }
+
+            if (Auth::check()) {
+                return redirect()->to(route('dashboard', [], false))
+                    ->with('error', 'That page could not be found.');
+            }
+
+            return redirect()->to('/')
+                ->with('error', 'That page could not be found.');
+        });
+
+        $exceptions->renderable(function (\ErrorException|\TypeError $e, Request $request) use ($redirectFriendlyMissingData, $isLikelyNullReferenceError) {
+            if (! $isLikelyNullReferenceError($e)) {
                 return null;
             }
 
-            if ($e->getModel() === AttendanceSession::class && ! $request->is('faculty/*')) {
-                return null;
+            report($e);
+
+            return $redirectFriendlyMissingData($request);
+        });
+
+        $exceptions->renderable(function (ViewException $e, Request $request) use ($redirectFriendlyMissingData, $isLikelyNullReferenceError) {
+            $prev = $e->getPrevious();
+            while ($prev instanceof \Throwable) {
+                if ($isLikelyNullReferenceError($prev)) {
+                    report($e);
+
+                    return $redirectFriendlyMissingData($request);
+                }
+                $prev = $prev->getPrevious();
             }
 
-            if ($e->getModel() !== AttendanceSession::class && ! $request->is('admin/*')) {
-                return null;
-            }
-
-            return redirect()->route($route)
-                ->with('error', 'This item is no longer available or has been removed.');
+            return null;
         });
 
         $exceptions->renderable(function (ValidationException $e, Request $request) use ($isStudentScan) {
@@ -162,26 +264,43 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return $renderSetupRequired('Application key is missing', [
-                'Set APP_KEY (generate locally with: php artisan key:generate --show)',
-                'Set APP_ENV=production and APP_DEBUG=false',
-                'Redeploy after updating environment variables',
+                'Run: php artisan key:generate — or paste a key from php artisan key:generate --show into APP_KEY in .env',
+                'Then run: php artisan config:clear',
+                'For production, set APP_ENV=production and APP_DEBUG=false',
             ]);
         });
 
-        $exceptions->renderable(function (QueryException|\PDOException $e, Request $request) use ($renderSetupRequired, $isDatabaseInfrastructureFailure) {
+        $exceptions->renderable(function (QueryException|\PDOException $e, Request $request) use ($renderSetupRequired, $isDatabaseInfrastructureFailure, $redirectFriendlyMissingData, $isStudentScan) {
+            if ($isDatabaseInfrastructureFailure($e)) {
+                if ($request->expectsJson()) {
+                    return response()->json(['message' => 'The database is not available.'], 503);
+                }
+
+                return $renderSetupRequired('Database connection failed', [
+                    'Create or select a database (SQLite file, MySQL, or PostgreSQL) and set DB_CONNECTION and the matching DB_* values in .env (or DATABASE_URL / DB_URL if you use a single URL).',
+                    'Run: php artisan migrate (use --force only in production).',
+                    'Ensure APP_KEY is set (php artisan key:generate).',
+                ]);
+            }
+
             if ($request->expectsJson()) {
-                return null;
+                if ($isStudentScan($request)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'We could not complete this action. Please try again or ask your instructor for help.',
+                    ], 500);
+                }
+
+                return response()->json(['message' => 'We could not load this information.'], 500);
             }
 
-            if (! $isDatabaseInfrastructureFailure($e)) {
-                return null;
+            if (! config('app.debug')) {
+                report($e);
+
+                return $redirectFriendlyMissingData($request);
             }
 
-            return $renderSetupRequired('Database connection failed', [
-                'Set DB_CONNECTION, DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD',
-                'Run migrations against your production database (php artisan migrate --force)',
-                'Redeploy after updating environment variables',
-            ]);
+            return null;
         });
 
         $exceptions->renderable(function (\Throwable $e, Request $request) use ($isStudentScan) {

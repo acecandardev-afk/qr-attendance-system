@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use App\Models\Department;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -56,7 +56,8 @@ class UserSeeder extends Seeder
             ],
         ];
 
-        foreach ($faculty as $fac) {
+        $statuses = ['regular', 'part_time', 'temporary'];
+        foreach ($faculty as $idx => $fac) {
             User::create([
                 'user_id' => $fac['user_id'],
                 'email' => $fac['email'],
@@ -66,6 +67,7 @@ class UserSeeder extends Seeder
                 'middle_name' => $fac['middle_name'],
                 'last_name' => $fac['last_name'],
                 'department_id' => $fac['department_id'],
+                'employment_status' => $statuses[$idx % count($statuses)],
                 'status' => 'active',
                 'email_verified_at' => now(),
             ]);

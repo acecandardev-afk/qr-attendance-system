@@ -57,6 +57,26 @@
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Count as absent after (minutes from session start)
+                </label>
+                <input
+                    type="number"
+                    name="absent_after_minutes"
+                    min="0"
+                    max="240"
+                    value="{{ old('absent_after_minutes', $settings['absent_after_minutes']) }}"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                <p class="text-xs text-gray-500 mt-1">
+                    After class attendance starts, this many minutes must pass before students who have not checked in are counted as absent (faculty can override in class timing).
+                </p>
+                @error('absent_after_minutes')
+                    <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
                     Limit repeated scans (per minute)
                 </label>
                 <input

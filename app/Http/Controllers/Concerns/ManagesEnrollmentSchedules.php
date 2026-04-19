@@ -141,7 +141,8 @@ trait ManagesEnrollmentSchedules
             ->where('student_id', $studentId)
             ->where('section_id', $sectionId)
             ->where('school_year', $schoolYear)
-            ->where('semester', $semester);
+            ->where('semester', $semester)
+            ->whereIn('status', [Enrollment::STATUS_PENDING, Enrollment::STATUS_ENROLLED]);
 
         if ($exceptEnrollmentId !== null) {
             $query->where('id', '!=', $exceptEnrollmentId);
